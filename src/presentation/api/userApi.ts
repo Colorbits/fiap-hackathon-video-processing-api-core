@@ -13,7 +13,6 @@ import {
 import { ApiQuery, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { IService } from '../../application/iService';
 import { User, UserDto } from '../../shared/models';
-// import { CacheInterceptor } from '@nestjs/cache-manager';
 
 @ApiTags('Usuários')
 @Controller('users')
@@ -61,7 +60,6 @@ export class UserApi {
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
   @ApiResponse({ status: 500, description: 'Erro ao buscar o usuário.' })
   @Get(':id')
-  // @UseInterceptors(CacheInterceptor)
   find(@Param('id') id?: number): Promise<User[]> {
     return this.userService.find(id);
   }
@@ -106,18 +104,5 @@ export class UserApi {
     });
     this.logger.debug(`Updated user: ${JSON.stringify(updatedUser)}`);
     return updatedUser;
-  }
-
-  @ApiOperation({
-    summary: 'Remover um usuário',
-    description: 'Exclui um usuário específico com base no ID fornecido.',
-  })
-  @ApiResponse({ status: 204, description: 'Usuário deletado com sucesso.' })
-  @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
-  @ApiResponse({ status: 500, description: 'Erro ao remover o usuário.' })
-  @Delete(':id')
-  async delete(@Param('id') id: number): Promise<void> {
-    await this.userService.delete(id);
-    this.logger.debug(`Deleted user with id: ${id}`);
   }
 }
