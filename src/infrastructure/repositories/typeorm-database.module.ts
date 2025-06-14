@@ -3,12 +3,13 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { DatabaseConstants } from '../postgres/postgres.constants';
 import { PostgresConfg } from '../postgres/postgres.config';
 import { UserRepository } from './user';
-import { UserEntity } from 'src/entities';
+import { VideoRepository } from './video';
+import { UserEntity, VideoEntity } from 'src/entities';
 
 @Module({
   imports: [
     DatabaseConstants,
-    TypeOrmModule.forFeature([UserEntity]),
+    TypeOrmModule.forFeature([UserEntity, VideoEntity]),
     TypeOrmModule.forRootAsync({
       imports: [PostgresConfg],
       useFactory: async (config: TypeOrmModuleOptions) => config,
@@ -20,11 +21,19 @@ import { UserEntity } from 'src/entities';
       provide: UserRepository.providerName,
       useClass: UserRepository,
     },
+    {
+      provide: VideoRepository.providerName,
+      useClass: VideoRepository,
+    },
   ],
   exports: [
     {
       provide: UserRepository.providerName,
       useClass: UserRepository,
+    },
+    {
+      provide: VideoRepository.providerName,
+      useClass: VideoRepository,
     },
   ],
 })
