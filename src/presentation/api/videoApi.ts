@@ -25,8 +25,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { IService } from '../../application/iService';
 import { Video, VideoDto } from '../../shared/models';
-import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { diskStorage } from 'multer';
 
 const destination = '/files';
 
@@ -60,7 +60,7 @@ export class VideoApi {
 
   constructor(
     @Inject('IService<Video>') private videoService: IService<Video>,
-  ) {}
+  ) { }
 
   @ApiOperation({
     summary: 'Obter todos os vídeos',
@@ -106,12 +106,12 @@ export class VideoApi {
   })
   @ApiResponse({ status: 404, description: 'Vídeo não encontrado.' })
   @ApiResponse({ status: 500, description: 'Erro ao buscar o vídeo.' })
-  @Get(':id')
+  @Get(':uuid')
   find(
-    @Param('id') id: number,
+    @Param('uuid') uuid: string,
     @Query('status') status?: string,
   ): Promise<Video[]> {
-    return this.videoService.find(id, status);
+    return this.videoService.find(uuid, status);
   }
 
   @ApiOperation({
@@ -129,6 +129,10 @@ export class VideoApi {
     schema: {
       type: 'object',
       properties: {
+        userId: {
+          type: 'number',
+          description: 'ID do usuário que está enviando o vídeo',
+        },
         file: {
           type: 'string',
           format: 'binary',
@@ -137,7 +141,7 @@ export class VideoApi {
       },
     },
   })
-  @Post(':id')
+  @Post(':userId')
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -148,10 +152,9 @@ export class VideoApi {
     }),
   )
   async create(
-    @Param('id') id: number,
+    @Param('userId') userId: number,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<Video> {
-    debugger;
     if (!file) {
       throw new HttpException(
         'Arquivo de vídeo não encontrado',
@@ -161,12 +164,10 @@ export class VideoApi {
 
     // Cria o objeto VideoDto com as informações do arquivo
     const videoDto: VideoDto = {
-      userId: id,
+      userId,
       name: file.originalname.split('.')[0],
       extension: 'mp4',
-      path: file.destination
-        ? `${file.destination}/${file.filename}`
-        : file.filename,
+      path: file.path,
       status: 'uploaded',
     };
 
@@ -190,14 +191,14 @@ export class VideoApi {
     description: 'Dados inválidos para atualização do vídeo.',
   })
   @ApiResponse({ status: 500, description: 'Erro ao atualizar o vídeo.' })
-  @Put(':id')
+  @Put(':uuid')
   async edit(
-    @Param('id') id: number,
+    @Param('uuid') uuid: string,
     @Body() videoDto: VideoDto,
   ): Promise<Video> {
     const updatedVideo = await this.videoService.edit({
       ...videoDto,
-      id,
+      uuid,
     });
     this.logger.debug(`Updated video: ${JSON.stringify(updatedVideo)}`);
     return updatedVideo;
@@ -211,8 +212,8 @@ export class VideoApi {
   @ApiResponse({ status: 404, description: 'Vídeo não encontrado.' })
   @ApiResponse({ status: 500, description: 'Erro ao remover o vídeo.' })
   @Delete(':id')
-  async delete(@Param('id') id: number): Promise<void> {
-    await this.videoService.delete(id);
-    this.logger.debug(`Deleted video with id: ${id}`);
+  async delete(@Param('uuid') uuid: number): Promise<void> {
+    await this.videoService.delete(uuid);
+    this.logger.debug(`Deleted video with id: ${uuid}`);
   }
 }

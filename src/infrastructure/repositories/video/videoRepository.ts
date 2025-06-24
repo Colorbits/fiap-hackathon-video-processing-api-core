@@ -18,14 +18,14 @@ export class VideoRepository implements Repository<Video> {
     return providerName;
   }
 
-  findById(id: number): Promise<Video> {
+  findById(uuid: string): Promise<Video> {
     return this.repository
       .createQueryBuilder('video')
-      .where('video.id = :id', { id: id })
+      .where('video.uuid = :uuid', { uuid })
       .getOne()
       .catch((error) => {
         throw new HttpException(
-          `An error occurred while searching the video in the database: '${JSON.stringify(id)}': ${error.message}`,
+          `An error occurred while searching the video in the database: '${JSON.stringify(uuid)}': ${error.message}`,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       });
@@ -54,11 +54,11 @@ export class VideoRepository implements Repository<Video> {
       });
   }
 
-  find(id?: number, status?: string): Promise<Video[]> {
+  find(uuid?: string, status?: string): Promise<Video[]> {
     const queryBuilder = this.repository.createQueryBuilder('video');
 
-    if (id) {
-      queryBuilder.andWhere('video.id = :id', { id });
+    if (uuid) {
+      queryBuilder.andWhere('video.uuid = :uuids', { uuid });
     }
 
     if (status) {
@@ -73,13 +73,13 @@ export class VideoRepository implements Repository<Video> {
     });
   }
 
-  async delete(videoId: number): Promise<void> {
-    await this.repository.delete(videoId);
+  async delete(videoUuid: string): Promise<void> {
+    await this.repository.delete(videoUuid);
   }
 
   edit(video: Video): Promise<Video> {
     return this.repository
-      .update(video.id, video)
+      .update(video.uuid, video)
       .then(() => video)
       .catch((error) => {
         throw new HttpException(
