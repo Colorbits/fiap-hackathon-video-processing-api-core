@@ -28,7 +28,7 @@ import { Video, VideoDto } from '../../shared/models';
 import { extname } from 'path';
 import { diskStorage } from 'multer';
 
-const destination = '/files';
+const destination = '/files/videos';
 
 export const editFileName = (req, file, callback) => {
   const name = file.originalname.split('.')[0];
