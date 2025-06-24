@@ -1,6 +1,8 @@
 # compiled output
 /dist
 /node_modules
+/files/videos/*
+/files/images/*
 /build
 
 envs/.env.local
