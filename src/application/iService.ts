@@ -3,11 +3,11 @@ export interface IService<T> {
 
   edit(type: Partial<T>): Promise<T>;
 
-  delete(id: number): Promise<void>;
+  delete(id: number | string): Promise<void>;
 
-  find(id?: number, status?: string, term?: string): Promise<T[]>;
+  find(id?: number | string, status?: string, term?: string): Promise<T[]>;
 
-  findById(id: number): Promise<T>;
+  findById(id: number | string): Promise<T>;
 
   findAll(): Promise<T[]>;
 }

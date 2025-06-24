@@ -1,9 +1,8 @@
-import { randomInt } from 'crypto';
 import { IsNotEmpty, IsOptional } from 'class-validator';
 
 export class VideoDto {
   @IsOptional()
-  id?: number;
+  uuid?: string;
 
   @IsNotEmpty()
   userId: number;
@@ -23,7 +22,7 @@ export class VideoDto {
 
 export class FilterVideoDto {
   @IsOptional()
-  id?: number;
+  uuid?: string;
 
   @IsOptional()
   userId?: number;
@@ -33,7 +32,7 @@ export class FilterVideoDto {
 }
 
 export class Video {
-  id?: number;
+  uuid?: string;
   userId: number;
   name: string;
   extension: string;
@@ -42,7 +41,7 @@ export class Video {
 
   constructor(videoDto: VideoDto) {
     if (videoDto) {
-      this.id = videoDto.id || randomInt(999);
+      this.uuid = videoDto.uuid;
       this.userId = videoDto.userId;
       this.name = videoDto.name;
       this.extension = videoDto.extension;

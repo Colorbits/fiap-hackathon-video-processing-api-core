@@ -11,7 +11,7 @@ export class EditVideoUseCase {
 
   edit(videoDto: VideoDto): Promise<Video> {
     const video: Video = {
-      id: videoDto.id,
+      uuid: videoDto.uuid,
       userId: videoDto.userId,
       name: videoDto.name,
       extension: videoDto.extension,

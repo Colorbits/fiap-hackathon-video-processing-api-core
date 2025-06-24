@@ -9,7 +9,7 @@ export class FindVideoUseCase {
     private readonly videoRepository: VideoRepository,
   ) {}
 
-  find(id?: number, status?: string): Promise<Video[]> {
-    return this.videoRepository.find(id, status);
+  find(uuid?: string, status?: string): Promise<Video[]> {
+    return this.videoRepository.find(uuid, status);
   }
 }

@@ -8,15 +8,15 @@ export class DeleteVideoUseCase {
     private readonly videoRepository: VideoRepository,
   ) {}
 
-  async delete(videoId: number): Promise<void> {
-    const video = await this.videoRepository.findById(videoId);
+  async delete(videoUuid: string): Promise<void> {
+    const video = await this.videoRepository.findById(videoUuid);
     if (!video) {
       throw new HttpException(
-        `Video not found with id: ${videoId}`,
+        `Video not found with id: ${videoUuid}`,
         HttpStatus.NOT_FOUND,
       );
     }
 
-    return this.videoRepository.delete(videoId);
+    return this.videoRepository.delete(videoUuid);
   }
 }

@@ -22,8 +22,8 @@ export class VideoService implements IService<Video> {
     private deleteVideoUseCase: DeleteVideoUseCase,
   ) {}
 
-  async findById(id: number): Promise<Video> {
-    const videos = await this.findVideoUseCase.find(id);
+  async findById(uuid: string): Promise<Video> {
+    const videos = await this.findVideoUseCase.find(uuid);
     return videos[0];
   }
 
@@ -31,9 +31,9 @@ export class VideoService implements IService<Video> {
     return this.createVideoUseCase.create(videoDto);
   }
 
-  find(id?: number, status?: string): Promise<Video[]> {
-    if (id || status) {
-      return this.findVideoUseCase.find(id, status);
+  find(uuid?: string, status?: string): Promise<Video[]> {
+    if (uuid || status) {
+      return this.findVideoUseCase.find(uuid, status);
     }
     return this.findAllVideoUseCase.findAll();
   }
@@ -46,7 +46,7 @@ export class VideoService implements IService<Video> {
     return this.editVideoUseCase.edit(videoDto);
   }
 
-  delete(id: number): Promise<void> {
-    return this.deleteVideoUseCase.delete(id);
+  delete(uuid: string): Promise<void> {
+    return this.deleteVideoUseCase.delete(uuid);
   }
 }
