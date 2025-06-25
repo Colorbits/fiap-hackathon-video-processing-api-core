@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Video, VideoDto } from 'src/shared/models';
 import { IService } from 'src/application/iService';
+import { ImageUploadHttpService } from 'src/infrastructure/microservices/image-upload/imageUploadHttpService';
 import { FindVideoUseCase } from '../useCases/findVideoUsecase';
 import { FindAllVideoUseCase } from '../useCases/findAllVideoUsecase';
 import { CreateVideoUseCase } from '../useCases/createVideoUsecase';
@@ -28,11 +29,78 @@ export class VideoService implements IService<Video> {
     private editVideoUseCase: EditVideoUseCase,
     @Inject('DeleteVideoUseCase')
     private deleteVideoUseCase: DeleteVideoUseCase,
-  ) { }
+    @Inject('ImageUploadHttpService')
+    private imageUploadHttpService: ImageUploadHttpService,
+  ) {}
 
   async findById(uuid: string): Promise<Video> {
     const videos = await this.findVideoUseCase.find(uuid);
     return videos[0];
+  }
+
+  async getVideoDuration(videoPath: string): Promise<number> {
+    let durationInSeconds = 5; // valor padrão se não conseguirmos determinar
+
+    // Em ambientes onde ffmpeg/ffprobe estão instalados corretamente,
+    if (process.env.USE_FFPROBE === 'true') {
+      try {
+        // Se você souber o caminho específico para o ffprobe, pode defini-lo aqui
+
+        const command = `ffprobe -v error -show_entries format=duration -of json "${videoPath}"`;
+        const response = await execPromise(command);
+        const probeData = JSON.parse(response.stdout);
+        durationInSeconds = Math.floor(parseFloat(probeData.format.duration));
+        this.logger.log(`Duração do vídeo: ${durationInSeconds} segundos`);
+        return durationInSeconds;
+      } catch (probeError) {
+        this.logger.warn(
+          `Não foi possível determinar a duração do vídeo: ${probeError.message}`,
+        );
+        this.logger.warn('Processando frames para os primeiros 60 segundos');
+      }
+    } else {
+      this.logger.warn(
+        'Modo de detecção de duração desativado, usando valor padrão de 60 segundos',
+      );
+      return durationInSeconds;
+    }
+  }
+
+  async getVideoFrame({
+    videoPath,
+    exactTime,
+    frameNumber,
+    fullOutputPath,
+  }: {
+    videoPath: string;
+    exactTime: number;
+    frameNumber: number;
+    fullOutputPath: string;
+  }): Promise<Blob> {
+    try {
+      // -ss posiciona no timestamp exato (em segundos)
+      const ffmpegCommand = `ffmpeg -ss ${exactTime.toFixed(3)} -i "${videoPath}" -vframes 1 -q:v 2 -y "${fullOutputPath}"`;
+      await execPromise(ffmpegCommand);
+
+      this.logger.log(`Frame extraído: ${fullOutputPath}`);
+      const frameBlob = fs.readFileSync(fullOutputPath);
+      return new Blob([frameBlob], { type: 'image/jpeg' });
+    } catch (frameErr) {
+      this.logger.error(
+        `Erro ao extrair frame ${frameNumber} (tempo ${exactTime.toFixed(3)}s): ${frameErr.message}`,
+      );
+      // Continue tentando extrair os outros frames mesmo que um falhe
+    }
+  }
+
+  async checkVideoProcessorAvailability(): Promise<boolean> {
+    try {
+      // Primeiro, testa se o FFmpeg está instalado e disponível
+      const response = await execPromise('ffmpeg -version');
+      return response.stdout.includes('ffmpeg version');
+    } catch (ffmpegErr) {
+      this.logger.error(`FFmpeg não está disponível: ${ffmpegErr.message}`);
+    }
   }
 
   async processVideo(videoDto: VideoDto): Promise<void> {
@@ -44,6 +112,7 @@ export class VideoService implements IService<Video> {
         videoDto.path,
         path.extname(videoDto.path),
       );
+
       const framesDir = path.join(
         process.cwd(),
         'files',
@@ -55,64 +124,53 @@ export class VideoService implements IService<Video> {
         fs.mkdirSync(framesDir, { recursive: true });
       }
 
-      // Definir duração padrão para o processamento
-      let durationInSeconds = 60; // valor padrão se não conseguirmos determinar
+      const durationInSeconds = await this.getVideoDuration(videoDto.path);
+      const framesPerSecond = 2; // usar o valor fornecido ou padrão de 1 frame por segundo;
 
-      // Em ambientes onde ffmpeg/ffprobe estão instalados corretamente,
-      // podemos tentar obter a duração precisa do vídeo
-      if (process.env.USE_FFPROBE === 'true') {
-        try {
-          // Se você souber o caminho específico para o ffprobe, pode defini-lo aqui
-          // Por exemplo: const ffprobePath = '/usr/local/bin/ffprobe';
-          // e usar: const command = `${ffprobePath} -v error...`
-          const command = `ffprobe -v error -show_entries format=duration -of json "${videoDto.path}"`;
-          const { stdout } = await execPromise(command);
-          const probeData = JSON.parse(stdout);
-          durationInSeconds = Math.floor(parseFloat(probeData.format.duration));
-          this.logger.log(`Duração do vídeo: ${durationInSeconds} segundos`);
-        } catch (probeError) {
-          this.logger.warn(
-            `Não foi possível determinar a duração do vídeo: ${probeError.message}`,
-          );
-          this.logger.warn('Processando frames para os primeiros 60 segundos');
-        }
-      } else {
-        this.logger.warn(
-          'Modo de detecção de duração desativado, usando valor padrão de 60 segundos',
-        );
-      }
+      const isAvailable = await this.checkVideoProcessorAvailability();
 
-      // Verificar se o FFmpeg está disponível
-      try {
-        // Primeiro, testa se o FFmpeg está instalado e disponível
-        await execPromise('ffmpeg -version');
-
-        // Extrair um frame por segundo utilizando fluent-ffmpeg
-        this.logger.log(`Iniciando extração de ${durationInSeconds} frames...`);
-
-        for (let second = 0; second < durationInSeconds; second++) {
-          const outputFilename = `frame-${second.toString().padStart(5, '0')}.jpg`;
-          const fullOutputPath = path.join(framesDir, outputFilename);
-
-          try {
-            // Usar o comando FFmpeg diretamente via exec para mais controle
-            const ffmpegCommand = `ffmpeg -ss ${second} -i "${videoDto.path}" -vframes 1 -q:v 2 -y "${fullOutputPath}"`;
-            await execPromise(ffmpegCommand);
-            this.logger.log(
-              `Frame extraído: ${outputFilename} (${second}/${durationInSeconds})`,
-            );
-          } catch (frameErr) {
-            this.logger.error(
-              `Erro ao extrair frame ${second}: ${frameErr.message}`,
-            );
-            // Continue tentando extrair os outros frames mesmo que um falhe
-          }
-        }
-      } catch (ffmpegErr) {
-        this.logger.error(`FFmpeg não está disponível: ${ffmpegErr.message}`);
-        throw new Error(
+      if (!isAvailable) {
+        this.logger.error(
           'FFmpeg não está instalado ou não está disponível no PATH do sistema',
         );
+        return;
+      }
+
+      // Calcular o número total de frames a serem extraídos
+      const totalFrames = durationInSeconds * framesPerSecond;
+      this.logger.log(
+        `Iniciando extração de ${totalFrames} frames (${framesPerSecond} fps por ${durationInSeconds} segundos)...`,
+      );
+
+      // Para cada segundo do vídeo
+      for (let second = 0; second < durationInSeconds; second++) {
+        // Para cada frame dentro desse segundo
+        for (let frameIndex = 0; frameIndex < framesPerSecond; frameIndex++) {
+          // Calcular o timestamp exato em segundos (com decimais para posição dentro do segundo)
+          const exactTime = second + frameIndex / framesPerSecond;
+
+          // Gerar nomes de arquivos consistentes e ordenados
+          const frameNumber = second * framesPerSecond + frameIndex;
+          const outputFilename = `frame-${frameNumber.toString().padStart(6, '0')}.jpg`;
+          const fullOutputPath = path.join(framesDir, outputFilename);
+
+          const frameBlob = await this.getVideoFrame({
+            videoPath: videoDto.path,
+            exactTime,
+            frameNumber,
+            fullOutputPath,
+          });
+
+          await this.imageUploadHttpService.uploadImage(
+            videoDto.uuid,
+            outputFilename,
+            frameBlob,
+          );
+
+          this.logger.log(
+            `Frame ${frameNumber} processado e enviado: ${outputFilename}`,
+          );
+        }
       }
 
       this.logger.log(`Processamento do vídeo concluído: ${videoDto.path}`);
@@ -127,7 +185,7 @@ export class VideoService implements IService<Video> {
       videoDto.status = 'error';
       await this.editVideoUseCase.edit(videoDto);
 
-      throw error;
+      this.logger.error(error.message);
     }
   }
 
