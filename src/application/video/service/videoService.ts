@@ -197,6 +197,7 @@ export class VideoService implements IService<Video> {
         videoUuid: video.uuid,
       };
       await this.imageUploadHttpService.createVideoZip(videoZipDto);
+      // TODO: create queue to process video and add video to queue
       this.processVideo({ uuid: video.uuid, ...videoDto });
     } catch (error) {
       this.logger.error(`Erro ao processar vídeo: ${error.message}`);
