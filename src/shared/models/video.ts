@@ -1,4 +1,9 @@
 import { IsNotEmpty, IsOptional } from 'class-validator';
+export enum videoStatusEnum {
+  PROCESSING = 'PROCESSING',
+  DONE = 'DONE',
+  ERROR = 'ERROR',
+}
 
 export class VideoDto {
   @IsOptional()
@@ -17,7 +22,7 @@ export class VideoDto {
   path: string;
 
   @IsNotEmpty()
-  status: string;
+  status: videoStatusEnum;
 }
 
 export class FilterVideoDto {
@@ -37,7 +42,7 @@ export class Video {
   name: string;
   extension: string;
   path: string;
-  status: string;
+  status: videoStatusEnum;
 
   constructor(videoDto: VideoDto) {
     if (videoDto) {
