@@ -24,7 +24,7 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { IService } from '../../application/iService';
-import { Video, VideoDto } from '../../shared/models';
+import { Video, VideoDto, videoStatusEnum } from '../../shared/models';
 import { extname } from 'path';
 import { diskStorage } from 'multer';
 
@@ -168,7 +168,7 @@ export class VideoApi {
       name: file.originalname.split('.')[0],
       extension: 'mp4',
       path: file.path,
-      status: 'uploaded',
+      status: videoStatusEnum.PROCESSING,
     };
 
     const video = await this.videoService.create(videoDto);

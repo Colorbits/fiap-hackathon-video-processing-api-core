@@ -1,7 +1,13 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Video, VideoDto } from 'src/shared/models';
+import {
+  Video,
+  VideoDto,
+  videoStatusEnum,
+  VideoZipDto,
+  videoZipStatusEnum,
+} from 'src/shared/models';
 import { IService } from 'src/application/iService';
 import { ImageUploadHttpService } from 'src/infrastructure/microservices/image-upload/imageUploadHttpService';
 import { FindVideoUseCase } from '../useCases/findVideoUsecase';
@@ -29,9 +35,9 @@ export class VideoService implements IService<Video> {
     private editVideoUseCase: EditVideoUseCase,
     @Inject('DeleteVideoUseCase')
     private deleteVideoUseCase: DeleteVideoUseCase,
-    @Inject('ImageUploadHttpService')
+    @Inject('IImageUploadHttpService')
     private imageUploadHttpService: ImageUploadHttpService,
-  ) {}
+  ) { }
 
   async findById(uuid: string): Promise<Video> {
     const videos = await this.findVideoUseCase.find(uuid);
@@ -104,99 +110,105 @@ export class VideoService implements IService<Video> {
   }
 
   async processVideo(videoDto: VideoDto): Promise<void> {
-    try {
-      this.logger.log(`Iniciando processamento do vídeo: ${videoDto.path}`);
+    this.logger.log(`Iniciando processamento do vídeo: ${videoDto.path}`);
 
-      // Criar diretório para salvar os frames, se não existir
-      const videoFileName = path.basename(
-        videoDto.path,
-        path.extname(videoDto.path),
-      );
+    // Criar diretório para salvar os frames, se não existir
+    const videoFileName = path.basename(
+      videoDto.path,
+      path.extname(videoDto.path),
+    );
 
-      const framesDir = path.join(
-        process.cwd(),
-        'files',
-        'images',
-        videoFileName,
-      );
+    const framesDir = path.join(
+      process.cwd(),
+      'files',
+      'images',
+      videoFileName,
+    );
 
-      if (!fs.existsSync(framesDir)) {
-        fs.mkdirSync(framesDir, { recursive: true });
-      }
-
-      const durationInSeconds = await this.getVideoDuration(videoDto.path);
-      const framesPerSecond = 2; // usar o valor fornecido ou padrão de 1 frame por segundo;
-
-      const isAvailable = await this.checkVideoProcessorAvailability();
-
-      if (!isAvailable) {
-        this.logger.error(
-          'FFmpeg não está instalado ou não está disponível no PATH do sistema',
-        );
-        return;
-      }
-
-      // Calcular o número total de frames a serem extraídos
-      const totalFrames = durationInSeconds * framesPerSecond;
-      this.logger.log(
-        `Iniciando extração de ${totalFrames} frames (${framesPerSecond} fps por ${durationInSeconds} segundos)...`,
-      );
-
-      // Para cada segundo do vídeo
-      for (let second = 0; second < durationInSeconds; second++) {
-        // Para cada frame dentro desse segundo
-        for (let frameIndex = 0; frameIndex < framesPerSecond; frameIndex++) {
-          // Calcular o timestamp exato em segundos (com decimais para posição dentro do segundo)
-          const exactTime = second + frameIndex / framesPerSecond;
-
-          // Gerar nomes de arquivos consistentes e ordenados
-          const frameNumber = second * framesPerSecond + frameIndex;
-          const outputFilename = `frame-${frameNumber.toString().padStart(6, '0')}.jpg`;
-          const fullOutputPath = path.join(framesDir, outputFilename);
-
-          const frameBlob = await this.getVideoFrame({
-            videoPath: videoDto.path,
-            exactTime,
-            frameNumber,
-            fullOutputPath,
-          });
-
-          await this.imageUploadHttpService.uploadImage(
-            videoDto.uuid,
-            outputFilename,
-            frameBlob,
-          );
-
-          this.logger.log(
-            `Frame ${frameNumber} processado e enviado: ${outputFilename}`,
-          );
-        }
-      }
-
-      this.logger.log(`Processamento do vídeo concluído: ${videoDto.path}`);
-
-      // Atualizar status do vídeo para 'processado'
-      videoDto.status = 'processed';
-      await this.editVideoUseCase.edit(videoDto);
-    } catch (error) {
-      this.logger.error(`Erro ao processar vídeo: ${error.message}`);
-
-      // Atualizar status do vídeo para 'error'
-      videoDto.status = 'error';
-      await this.editVideoUseCase.edit(videoDto);
-
-      this.logger.error(error.message);
+    if (!fs.existsSync(framesDir)) {
+      fs.mkdirSync(framesDir, { recursive: true });
     }
+
+    const durationInSeconds = await this.getVideoDuration(videoDto.path);
+    const framesPerSecond = 2; // usar o valor fornecido ou padrão de 1 frame por segundo;
+
+    const isAvailable = await this.checkVideoProcessorAvailability();
+
+    if (!isAvailable) {
+      this.logger.error(
+        'FFmpeg não está instalado ou não está disponível no PATH do sistema',
+      );
+      return;
+    }
+
+    // Calcular o número total de frames a serem extraídos
+    const totalFrames = durationInSeconds * framesPerSecond;
+    this.logger.log(
+      `Iniciando extração de ${totalFrames} frames (${framesPerSecond} fps por ${durationInSeconds} segundos)...`,
+    );
+
+    // Para cada segundo do vídeo
+    for (let second = 0; second < durationInSeconds; second++) {
+      // Para cada frame dentro desse segundo
+      for (let frameIndex = 0; frameIndex < framesPerSecond; frameIndex++) {
+        // Calcular o timestamp exato em segundos (com decimais para posição dentro do segundo)
+        const exactTime = second + frameIndex / framesPerSecond;
+
+        // Gerar nomes de arquivos consistentes e ordenados
+        const frameNumber = second * framesPerSecond + frameIndex;
+        const outputFilename = `frame-${frameNumber.toString().padStart(6, '0')}.jpg`;
+        const fullOutputPath = path.join(framesDir, outputFilename);
+
+        const frameBlob = await this.getVideoFrame({
+          videoPath: videoDto.path,
+          exactTime,
+          frameNumber,
+          fullOutputPath,
+        });
+
+        await this.imageUploadHttpService.uploadImage(
+          videoDto.uuid,
+          outputFilename,
+          frameBlob,
+        );
+
+        this.logger.log(
+          `Frame ${frameNumber} processado e enviado: ${outputFilename}`,
+        );
+      }
+    }
+
+    this.logger.log(`Processamento do vídeo concluído: ${videoDto.path}`);
+
+    // Atualizar status do vídeo para 'processado'
+    videoDto.status = videoStatusEnum.DONE;
+    await this.editVideoUseCase.edit(videoDto);
+    await this.imageUploadHttpService.updateVideoZip({
+      videoUuid: videoDto.uuid,
+      status: videoZipStatusEnum.DONE,
+    } as VideoZipDto);
   }
 
   async create(videoDto: VideoDto): Promise<Video> {
     const video = await this.createVideoUseCase.create(videoDto);
-    // Inicia o processamento do vídeo em background
-    this.processVideo({ uuid: video.uuid, ...videoDto }).catch((error) => {
-      this.logger.error(
-        `Erro durante o processamento do vídeo: ${error.message}`,
-      );
-    });
+    try {
+      this.logger.log('Inicia o processamento do vídeo em segundo plano.');
+      const videoZipDto: VideoZipDto = {
+        videoUuid: video.uuid,
+      };
+      await this.imageUploadHttpService.createVideoZip(videoZipDto);
+      this.processVideo({ uuid: video.uuid, ...videoDto });
+    } catch (error) {
+      this.logger.error(`Erro ao processar vídeo: ${error.message}`);
+
+      videoDto.status = videoStatusEnum.ERROR;
+      await this.editVideoUseCase.edit(videoDto);
+      await this.imageUploadHttpService.updateVideoZip({
+        videoUuid: videoDto.uuid,
+        status: videoZipStatusEnum.DONE,
+      } as VideoZipDto);
+    }
+
     return video;
   }
 

@@ -1,11 +1,19 @@
 import axios from 'axios';
 import { IImageUploadHttpService } from './IImageUploadHttpService';
 import { VideoZipDto, ImageDto } from '../../../shared';
+import { Logger } from '@nestjs/common';
 
-const imageUploadMicroserviceEndpoint =
-  process.env.PRODUCT_IMAGE_MICROSERVICE_URL;
+const imageUploadMicroserviceEndpoint = process.env.IMAGE_UPLOAD_SERVICE_URL;
+
+const providerName = 'IImageUploadHttpService';
 
 export class ImageUploadHttpService implements IImageUploadHttpService {
+  private readonly logger = new Logger(ImageUploadHttpService.name);
+
+  static get providerName(): string {
+    return providerName;
+  }
+
   async createVideoZip(videoZipDto: VideoZipDto): Promise<VideoZipDto> {
     const response = await axios.post<VideoZipDto>(
       `${imageUploadMicroserviceEndpoint}/video-zip`,
@@ -42,12 +50,16 @@ export class ImageUploadHttpService implements IImageUploadHttpService {
     image: Blob,
   ): Promise<ImageDto> {
     const formData = new FormData();
-    formData.append('images', image, `${filename}.jpg`);
-
-    const response = await axios.post<ImageDto>(
-      `${imageUploadMicroserviceEndpoint}/video-zip/${videoUuid}/images`,
-      formData,
-    );
-    return response.data;
+    formData.append('file', image, `${filename}`);
+    try {
+      const response = await axios.post<ImageDto>(
+        `${imageUploadMicroserviceEndpoint}/images/${videoUuid}`,
+        formData,
+      );
+      this.logger.log('video enviado com sucesso');
+      return response.data;
+    } catch (error) {
+      this.logger.error(`erro ao enviar video:, ${error.message}`);
+    }
   }
 }

@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { videoStatusEnum } from '../../shared/models';
 
 @Entity({ name: 'Video' })
 export class VideoEntity {
@@ -18,5 +19,5 @@ export class VideoEntity {
   path: string;
 
   @Column({ name: 'status' })
-  status: string;
+  status: videoStatusEnum;
 }
