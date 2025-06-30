@@ -4,12 +4,13 @@ import { DatabaseConstants } from '../postgres/postgres.constants';
 import { PostgresConfg } from '../postgres/postgres.config';
 import { UserRepository } from './user';
 import { VideoRepository } from './video';
-import { UserEntity, VideoEntity } from 'src/entities';
+import { AuthRepository } from './auth';
+import { UserEntity, VideoEntity, AuthEntity } from 'src/entities';
 
 @Module({
   imports: [
     DatabaseConstants,
-    TypeOrmModule.forFeature([UserEntity, VideoEntity]),
+    TypeOrmModule.forFeature([UserEntity, VideoEntity, AuthEntity]),
     TypeOrmModule.forRootAsync({
       imports: [PostgresConfg],
       useFactory: async (config: TypeOrmModuleOptions) => config,
@@ -25,6 +26,10 @@ import { UserEntity, VideoEntity } from 'src/entities';
       provide: VideoRepository.providerName,
       useClass: VideoRepository,
     },
+    {
+      provide: AuthRepository.providerName,
+      useClass: AuthRepository,
+    },
   ],
   exports: [
     {
@@ -34,6 +39,10 @@ import { UserEntity, VideoEntity } from 'src/entities';
     {
       provide: VideoRepository.providerName,
       useClass: VideoRepository,
+    },
+    {
+      provide: AuthRepository.providerName,
+      useClass: AuthRepository,
     },
   ],
 })
