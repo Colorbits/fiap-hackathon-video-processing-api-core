@@ -54,10 +54,20 @@ export class UserRepository implements Repository<User> {
       });
   }
 
-  find(id: number): Promise<User[]> {
+  find(id: number, email: string): Promise<User[]> {
+    let whereClause = '';
+
+    if (id) {
+      whereClause = 'user.id = :id';
+    }
+
+    if (email) {
+      whereClause = 'user.email = :email';
+    }
+
     return this.repository
       .createQueryBuilder('user')
-      .where('user.id = :id', { id: id })
+      .where(whereClause, { id, email })
       .getMany()
       .catch((error) => {
         throw new HttpException(
