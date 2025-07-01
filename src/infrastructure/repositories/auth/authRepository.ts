@@ -2,7 +2,7 @@ import { Repository } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository as IRepository } from '../Repository';
-import { AuthEntity } from 'src/entities';
+import { AutSessionEntity } from 'src/entities';
 import { Auth } from 'src/shared';
 
 @Injectable()
@@ -10,8 +10,8 @@ export class AuthRepository implements IRepository<Auth> {
   static readonly providerName = 'AuthRepository';
 
   constructor(
-    @InjectRepository(AuthEntity)
-    private readonly authRepository: Repository<AuthEntity>,
+    @InjectRepository(AutSessionEntity)
+    private readonly authRepository: Repository<AutSessionEntity>,
   ) {}
 
   async findAll(): Promise<Auth[]> {

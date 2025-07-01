@@ -1,6 +1,6 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import {
   Video,
   VideoDto,
@@ -17,11 +17,13 @@ import { EditVideoUseCase } from '../useCases/editVideoUsecase';
 import { DeleteVideoUseCase } from '../useCases/deleteVideoUsecase';
 import * as fs from 'fs';
 import * as path from 'path';
+import { VideoProcessingQueue } from 'src/shared/queue';
 
 const execPromise = promisify(exec);
 
 @Injectable()
-export class VideoService implements IService<Video> {
+export class VideoService implements IService<Video>, OnModuleInit {
+  private videoProcessingQueue: VideoProcessingQueue<VideoDto>;
   private readonly logger = new Logger(VideoService.name);
 
   constructor(
@@ -38,6 +40,14 @@ export class VideoService implements IService<Video> {
     @Inject('IImageUploadHttpService')
     private imageUploadHttpService: ImageUploadHttpService,
   ) { }
+
+  onModuleInit() {
+    // Inicializa a fila de processamento de vídeos
+    this.videoProcessingQueue = new VideoProcessingQueue<VideoDto>((videoDto) =>
+      this.processVideo(videoDto),
+    );
+    this.logger.log('Fila de processamento de vídeos inicializada');
+  }
 
   async findById(uuid: string): Promise<Video> {
     const videos = await this.findVideoUseCase.find(uuid);
@@ -192,22 +202,38 @@ export class VideoService implements IService<Video> {
   async create(videoDto: VideoDto): Promise<Video> {
     const video = await this.createVideoUseCase.create(videoDto);
     try {
-      this.logger.log('Inicia o processamento do vídeo em segundo plano.');
+      this.logger.log('Adicionando vídeo à fila de processamento.');
       const videoZipDto: VideoZipDto = {
         videoUuid: video.uuid,
       };
       await this.imageUploadHttpService.createVideoZip(videoZipDto);
-      // TODO: create queue to process video and add video to queue
-      this.processVideo({ uuid: video.uuid, ...videoDto });
+
+      // Adiciona o vídeo à fila de processamento
+      this.videoProcessingQueue.addToQueue(video.uuid, {
+        uuid: video.uuid,
+        ...videoDto,
+      });
+      this.logger.log(
+        `Vídeo ${video.uuid} adicionado à fila de processamento.`,
+      );
     } catch (error) {
-      this.logger.error(`Erro ao processar vídeo: ${error.message}`);
+      this.logger.error(
+        `Erro ao preparar processamento do vídeo: ${error.message}`,
+      );
 
       videoDto.status = videoStatusEnum.ERROR;
-      await this.editVideoUseCase.edit(videoDto);
-      await this.imageUploadHttpService.updateVideoZip({
-        videoUuid: videoDto.uuid,
-        status: videoZipStatusEnum.DONE,
-      } as VideoZipDto);
+      this.editVideoUseCase.edit({ uuid: video.uuid, ...videoDto });
+
+      this.imageUploadHttpService
+        .updateVideoZip({
+          videoUuid: videoDto.uuid,
+          status: videoZipStatusEnum.DONE,
+        } as VideoZipDto)
+        .catch((err) => {
+          this.logger.error(
+            `Erro ao atualizar o status do vídeo zip: ${err.message}`,
+          );
+        });
     }
 
     return video;
@@ -230,5 +256,14 @@ export class VideoService implements IService<Video> {
 
   delete(uuid: string): Promise<void> {
     return this.deleteVideoUseCase.delete(uuid);
+  }
+
+  getQueueStatus() {
+    return this.videoProcessingQueue.getQueueStatus();
+  }
+
+  retryFailedProcessing() {
+    this.videoProcessingQueue.retryFailed();
+    return { message: 'Tentando processar novamente vídeos com falha' };
   }
 }
