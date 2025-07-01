@@ -5,12 +5,12 @@ import { PostgresConfg } from '../postgres/postgres.config';
 import { UserRepository } from './user';
 import { VideoRepository } from './video';
 import { AuthRepository } from './auth';
-import { UserEntity, VideoEntity, AuthEntity } from 'src/entities';
+import { UserEntity, VideoEntity, AutSessionEntity } from 'src/entities';
 
 @Module({
   imports: [
     DatabaseConstants,
-    TypeOrmModule.forFeature([UserEntity, VideoEntity, AuthEntity]),
+    TypeOrmModule.forFeature([UserEntity, VideoEntity, AutSessionEntity]),
     TypeOrmModule.forRootAsync({
       imports: [PostgresConfg],
       useFactory: async (config: TypeOrmModuleOptions) => config,
