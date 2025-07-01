@@ -39,7 +39,7 @@ export class VideoService implements IService<Video>, OnModuleInit {
     private deleteVideoUseCase: DeleteVideoUseCase,
     @Inject('IImageUploadHttpService')
     private imageUploadHttpService: ImageUploadHttpService,
-  ) {}
+  ) { }
 
   onModuleInit() {
     // Inicializa a fila de processamento de vídeos
@@ -222,11 +222,18 @@ export class VideoService implements IService<Video>, OnModuleInit {
       );
 
       videoDto.status = videoStatusEnum.ERROR;
-      await this.editVideoUseCase.edit(videoDto);
-      await this.imageUploadHttpService.updateVideoZip({
-        videoUuid: videoDto.uuid,
-        status: videoZipStatusEnum.DONE,
-      } as VideoZipDto);
+      this.editVideoUseCase.edit({ uuid: video.uuid, ...videoDto });
+
+      this.imageUploadHttpService
+        .updateVideoZip({
+          videoUuid: videoDto.uuid,
+          status: videoZipStatusEnum.DONE,
+        } as VideoZipDto)
+        .catch((err) => {
+          this.logger.error(
+            `Erro ao atualizar o status do vídeo zip: ${err.message}`,
+          );
+        });
     }
 
     return video;
