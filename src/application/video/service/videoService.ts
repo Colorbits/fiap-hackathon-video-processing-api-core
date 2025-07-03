@@ -206,8 +206,10 @@ export class VideoService implements IService<Video>, OnModuleInit {
       const videoZipDto: VideoZipDto = {
         videoUuid: video.uuid,
       };
+      this.logger.log(`Criando videozip.`);
       await this.imageUploadHttpService.createVideoZip(videoZipDto);
 
+      this.logger.log(`Adicionando video a fila de processamento.`);
       // Adiciona o vídeo à fila de processamento
       this.videoProcessingQueue.addToQueue(video.uuid, {
         uuid: video.uuid,
@@ -219,6 +221,7 @@ export class VideoService implements IService<Video>, OnModuleInit {
     } catch (error) {
       this.logger.error(
         `Erro ao preparar processamento do vídeo: ${error.message}`,
+        error,
       );
 
       videoDto.status = videoStatusEnum.ERROR;
@@ -232,6 +235,7 @@ export class VideoService implements IService<Video>, OnModuleInit {
         .catch((err) => {
           this.logger.error(
             `Erro ao atualizar o status do vídeo zip: ${err.message}`,
+            error,
           );
         });
     }
