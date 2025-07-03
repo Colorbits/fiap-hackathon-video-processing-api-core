@@ -1,24 +1,16 @@
 volumes:
-  # Volume para armazenar arquivos do banco de dados.
   db_data:
-  # Volumes para armazenar vídeos e imagens processadas
   videos_data:
   images_data:
 networks:
-  # Rede interna entre os containers.
   internal:
-
 services:
-  # Container com a API baseada em NestJS.
-  api:
+  api-core:
     build:
-      # Torna o diretório atual visível para o builder do container, para que possamos copiar os arquivos do projeto
-      # para dentro do container.
+
       context: .
-      # Arquivo de definição da imagem do container.
       dockerfile: Dockerfile
     ports:
-      # Expondo aplicação na porta especificada na variável de ambiente PORT.
       - "${PORT}:${PORT}"
     environment:
       PORT: "${PORT}"
@@ -28,6 +20,8 @@ services:
       POSTGRES_USER: "${POSTGRES_USER}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_DATABASE: "${POSTGRES_DATABASE}"
+      IMAGE_UPLOAD_SERVICE_URL: "${IMAGE_UPLOAD_SERVICE_URL}"
+      NOTIFICATION_SERVICE_URL: "${NOTIFICATION_SERVICE_URL}"
       USE_FFPROBE: "true"
     restart: unless-stopped
     networks:
@@ -36,18 +30,30 @@ services:
       - videos_data:/usr/src/app/files/videos
       - images_data:/usr/src/app/files/images
     depends_on:
-      redis:
-        condition: service_healthy
-      # Espera até que o banco de dados esteja pronto para receber requisições para iniciar a aplicação.
       db:
         condition: service_healthy
-    # Define health check simples que só testa se o endpoint padrão está respondendo requisições.
+      image-upload-service:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${PORT}/health"]
       interval: 10s
       timeout: 10s
       retries: 10
       start_period: 20s
+      
+  image-upload-service:
+    # Em vez de fazer o build aqui, apenas definimos o serviço para ser acessível
+    image: fiap-hackathon-image-upload-service:latest
+    ports:
+      - "3001:3001"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
   db:
     image: postgres:17-alpine3.20
     restart: unless-stopped
@@ -71,14 +77,4 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
-  redis:
-    networks:
-      - internal
-    image: redis:6.0.7
-    container_name: redis
-    restart: unless-stopped
-    ports:
-      - "${REDIS_PORT}:${REDIS_PORT}"
-    healthcheck:
-      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
 
