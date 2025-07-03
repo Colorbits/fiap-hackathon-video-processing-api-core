@@ -13,6 +13,7 @@ import {
   Query,
   UploadedFile,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiQuery,
@@ -21,10 +22,12 @@ import {
   ApiResponse,
   ApiConsumes,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { IService } from '../../application/iService';
-import { Video, VideoDto } from '../../shared/models';
+import { Video, VideoDto, videoStatusEnum } from '../../shared/models';
+import { AuthGuard } from '../../shared/guards';
 import { extname } from 'path';
 import { diskStorage } from 'multer';
 
@@ -54,13 +57,15 @@ export const videoFileFilter = (req, file, callback) => {
 };
 
 @ApiTags('Vídeos')
+@ApiBearerAuth()
 @Controller('videos')
+@UseGuards(AuthGuard)
 export class VideoApi {
   private readonly logger = new Logger(VideoApi.name);
 
   constructor(
     @Inject('IService<Video>') private videoService: IService<Video>,
-  ) { }
+  ) {}
 
   @ApiOperation({
     summary: 'Obter todos os vídeos',
@@ -69,6 +74,10 @@ export class VideoApi {
   @ApiResponse({
     status: 200,
     description: 'Lista de vídeos retornada com sucesso.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Não autorizado - Token inválido ou não fornecido.',
   })
   @ApiResponse({ status: 500, description: 'Erro ao buscar vídeos.' })
   @ApiQuery({
@@ -104,6 +113,10 @@ export class VideoApi {
     status: 200,
     description: 'Vídeo(s) encontrado(s) com sucesso.',
   })
+  @ApiResponse({
+    status: 401,
+    description: 'Não autorizado - Token inválido ou não fornecido.',
+  })
   @ApiResponse({ status: 404, description: 'Vídeo não encontrado.' })
   @ApiResponse({ status: 500, description: 'Erro ao buscar o vídeo.' })
   @Get(':uuid')
@@ -122,6 +135,10 @@ export class VideoApi {
   @ApiResponse({
     status: 400,
     description: 'Dados inválidos para criação do vídeo.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Não autorizado - Token inválido ou não fornecido.',
   })
   @ApiResponse({ status: 500, description: 'Erro ao criar o vídeo.' })
   @ApiConsumes('multipart/form-data')
@@ -168,7 +185,7 @@ export class VideoApi {
       name: file.originalname.split('.')[0],
       extension: 'mp4',
       path: file.path,
-      status: 'uploaded',
+      status: videoStatusEnum.PROCESSING,
     };
 
     const video = await this.videoService.create(videoDto);
@@ -184,6 +201,10 @@ export class VideoApi {
   @ApiResponse({
     status: 200,
     description: 'Vídeo atualizado com sucesso.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Não autorizado - Token inválido ou não fornecido.',
   })
   @ApiResponse({ status: 404, description: 'Vídeo não encontrado.' })
   @ApiResponse({
@@ -209,11 +230,15 @@ export class VideoApi {
     description: 'Exclui um vídeo específico com base no ID fornecido.',
   })
   @ApiResponse({ status: 204, description: 'Vídeo deletado com sucesso.' })
+  @ApiResponse({
+    status: 401,
+    description: 'Não autorizado - Token inválido ou não fornecido.',
+  })
   @ApiResponse({ status: 404, description: 'Vídeo não encontrado.' })
   @ApiResponse({ status: 500, description: 'Erro ao remover o vídeo.' })
-  @Delete(':id')
-  async delete(@Param('uuid') uuid: number): Promise<void> {
+  @Delete(':uuid')
+  async delete(@Param('uuid') uuid: string): Promise<void> {
     await this.videoService.delete(uuid);
-    this.logger.debug(`Deleted video with id: ${uuid}`);
+    this.logger.debug(`Deleted video with UUID: ${uuid}`);
   }
 }

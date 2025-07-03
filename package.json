@@ -18,11 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "start:kubernetes": "kubectl apply -f ./kubernetes ",
     "start:docker": "docker compose --env-file envs/.env.local  up -d --build ",
-    "stop:docker": "docker compose --env-file envs/.env.local down",
-    "purge:docker": "docker compose --env-file envs/.env.local down -v",
-    "stop:prod:docker": "docker compose down"
+    "stop:docker": "docker compose --env-file envs/.env.local down"
   },
   "dependencies": {
     "@liaoliaots/nestjs-redis": "^10.0.0",
@@ -33,8 +30,10 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/swagger": "^7.4.2",
     "@nestjs/typeorm": "^10.0.2",
+    "@types/bcrypt": "^5.0.2",
     "@types/fluent-ffmpeg": "^2.1.27",
     "axios": "^1.9.0",
+    "bcrypt": "^6.0.0",
     "cache-manager": "^6.4.1",
     "cache-manager-redis-store": "^2.0.0",
     "class-validator": "^0.14.1",
