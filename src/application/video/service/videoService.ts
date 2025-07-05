@@ -1,7 +1,9 @@
+import { FindUserUseCase } from './../../user/useCases/findUserUsecase';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import {
+  User,
   Video,
   VideoDto,
   videoStatusEnum,
@@ -9,7 +11,10 @@ import {
   videoZipStatusEnum,
 } from 'src/shared/models';
 import { IService } from 'src/application/iService';
-import { ImageUploadHttpService } from 'src/infrastructure/microservices/image-upload/imageUploadHttpService';
+import {
+  ImageUploadHttpService,
+  NotificationHttpService,
+} from 'src/infrastructure/microservices';
 import { FindVideoUseCase } from '../useCases/findVideoUsecase';
 import { FindAllVideoUseCase } from '../useCases/findAllVideoUsecase';
 import { CreateVideoUseCase } from '../useCases/createVideoUsecase';
@@ -39,7 +44,11 @@ export class VideoService implements IService<Video>, OnModuleInit {
     private deleteVideoUseCase: DeleteVideoUseCase,
     @Inject('IImageUploadHttpService')
     private imageUploadHttpService: ImageUploadHttpService,
-  ) { }
+    @Inject('INotificationHttpService')
+    private notificationHttpService: NotificationHttpService,
+    @Inject('FindUserUseCase')
+    private findUserUseCase: FindUserUseCase,
+  ) {}
 
   onModuleInit() {
     // Inicializa a fila de processamento de vídeos
@@ -122,7 +131,6 @@ export class VideoService implements IService<Video>, OnModuleInit {
   async processVideo(videoDto: VideoDto): Promise<void> {
     this.logger.log(`Iniciando processamento do vídeo: ${videoDto.path}`);
 
-    // Criar diretório para salvar os frames, se não existir
     const videoFileName = path.basename(
       videoDto.path,
       path.extname(videoDto.path),
@@ -199,8 +207,52 @@ export class VideoService implements IService<Video>, OnModuleInit {
     } as VideoZipDto);
   }
 
+  onSendNotificationError(video: Video, user: User, error: Error) {
+    video.status = videoStatusEnum.ERROR;
+    this.editVideoUseCase.edit({ uuid: video.uuid, ...video });
+
+    this.logger.error(
+      `Enviar notificacao de erro para o usuario: ${video.userId}`,
+    );
+
+    this.notificationHttpService
+      .createNotification({
+        videoUuid: video.uuid,
+        videoName: video.name,
+        userId: `${video.userId}`,
+        userName: user.name,
+        email: user.email,
+        error: error.message,
+        status: 'FAILED',
+      })
+      .catch((err) => {
+        this.logger.error(
+          `Erro ao enviar notificacao de erro: ${err.message}`,
+          error,
+        );
+      });
+
+    this.logger.error(
+      `Atualizando status do video no image-upload-service: ${error.message}`,
+      error,
+    );
+
+    this.imageUploadHttpService
+      .updateVideoZip({
+        videoUuid: video.uuid,
+        status: videoZipStatusEnum.DONE,
+      } as VideoZipDto)
+      .catch((err) => {
+        this.logger.error(
+          `Erro ao atualizar o status do vídeo zip: ${err.message}`,
+          error,
+        );
+      });
+  }
+
   async create(videoDto: VideoDto): Promise<Video> {
     const video = await this.createVideoUseCase.create(videoDto);
+    const [user] = await this.findUserUseCase.find(videoDto.userId);
     try {
       this.logger.log('Adicionando vídeo à fila de processamento.');
       const videoZipDto: VideoZipDto = {
@@ -215,6 +267,7 @@ export class VideoService implements IService<Video>, OnModuleInit {
         uuid: video.uuid,
         ...videoDto,
       });
+
       this.logger.log(
         `Vídeo ${video.uuid} adicionado à fila de processamento.`,
       );
@@ -223,21 +276,7 @@ export class VideoService implements IService<Video>, OnModuleInit {
         `Erro ao preparar processamento do vídeo: ${error.message}`,
         error,
       );
-
-      videoDto.status = videoStatusEnum.ERROR;
-      this.editVideoUseCase.edit({ uuid: video.uuid, ...videoDto });
-
-      this.imageUploadHttpService
-        .updateVideoZip({
-          videoUuid: videoDto.uuid,
-          status: videoZipStatusEnum.DONE,
-        } as VideoZipDto)
-        .catch((err) => {
-          this.logger.error(
-            `Erro ao atualizar o status do vídeo zip: ${err.message}`,
-            error,
-          );
-        });
+      this.onSendNotificationError(video, user, error);
     }
 
     return video;

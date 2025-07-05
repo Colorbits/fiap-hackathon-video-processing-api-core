@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ImageUploadHttpService } from './image-upload/imageUploadHttpService';
+import { ImageUploadHttpService } from './image-upload';
+import { NotificationHttpService } from './notification';
 
 @Module({
   providers: [
@@ -7,11 +8,19 @@ import { ImageUploadHttpService } from './image-upload/imageUploadHttpService';
       provide: 'IImageUploadHttpService',
       useClass: ImageUploadHttpService,
     },
+    {
+      provide: 'INotificationHttpService',
+      useClass: NotificationHttpService,
+    },
   ],
   exports: [
     {
       provide: 'IImageUploadHttpService',
       useClass: ImageUploadHttpService,
+    },
+    {
+      provide: 'INotificationHttpService',
+      useClass: NotificationHttpService,
     },
   ],
 })

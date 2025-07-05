@@ -18,21 +18,15 @@ export class ImageUploadHttpService implements IImageUploadHttpService {
     this.logger.log(
       `createVideoZip ${imageUploadMicroserviceEndpoint}/video-zip ${JSON.stringify(videoZipDto)}`,
     );
-    try {
-      this.logger.log(
-        'Enviando videoZipDto para o microserviço de upload de imagens',
-      );
-      const response = await axios.post<VideoZipDto>(
-        `${imageUploadMicroserviceEndpoint}/video-zip`,
-        videoZipDto,
-      );
-      return response.data;
-    } catch (error) {
-      this.logger.error(
-        `Erro ao enviar videoZipDto: ${error.message} ${JSON.stringify(error)}`,
-        error,
-      );
-    }
+
+    this.logger.log(
+      'Enviando videoZipDto para o microserviço de upload de imagens',
+    );
+    const response = await axios.post<VideoZipDto>(
+      `${imageUploadMicroserviceEndpoint}/video-zip`,
+      videoZipDto,
+    );
+    return response.data;
   }
 
   async updateVideoZip(videoZipDto: VideoZipDto): Promise<VideoZipDto> {

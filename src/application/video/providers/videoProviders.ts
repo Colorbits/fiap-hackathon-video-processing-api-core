@@ -6,13 +6,20 @@ import { DeleteVideoUseCase } from '../useCases/deleteVideoUsecase';
 import { EditVideoUseCase } from '../useCases/editVideoUsecase';
 import { FindAllVideoUseCase } from '../useCases/findAllVideoUsecase';
 import { CreateVideoUseCase } from '../useCases/createVideoUsecase';
-import { ImageUploadHttpService } from '../../../infrastructure/microservices/image-upload/imageUploadHttpService';
+import {
+  ImageUploadHttpService,
+  NotificationHttpService,
+} from '../../../infrastructure/microservices/';
 
 export const VideoProviders: Provider[] = [
   { provide: 'IService<Video>', useClass: VideoService },
   {
     provide: ImageUploadHttpService.providerName,
     useClass: ImageUploadHttpService,
+  },
+  {
+    provide: NotificationHttpService.providerName,
+    useClass: NotificationHttpService,
   },
   {
     provide: 'FindVideoUseCase',

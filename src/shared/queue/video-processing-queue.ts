@@ -13,12 +13,11 @@ export class VideoProcessingQueue<T> {
   private readonly logger = new Logger(VideoProcessingQueue.name);
   private queue: QueueItem<T>[] = [];
   private processing = false;
-  private maxConcurrent = 1; // Número máximo de itens processados simultaneamente
+  private maxConcurrent = 2; // Número máximo de itens processados simultaneamente
   private currentProcessing = 0;
 
   constructor(private processor: (item: T) => Promise<void>) {}
 
-  // Adiciona um item à fila
   addToQueue(id: string, data: T): void {
     const queueItem: QueueItem<T> = {
       id,
@@ -38,7 +37,6 @@ export class VideoProcessingQueue<T> {
     }
   }
 
-  // Processa a fila de forma assíncrona
   private async processQueue(): Promise<void> {
     this.processing = true;
 
@@ -100,7 +98,6 @@ export class VideoProcessingQueue<T> {
     }
   }
 
-  // Retorna o status atual da fila
   getQueueStatus(): {
     total: number;
     pending: number;
@@ -117,7 +114,6 @@ export class VideoProcessingQueue<T> {
     };
   }
 
-  // Retenta itens com falha
   retryFailed(): void {
     const failedItems = this.queue.filter((i) => i.status === 'failed');
 
