@@ -207,7 +207,7 @@ export class VideoService implements IService<Video>, OnModuleInit {
     } as VideoZipDto);
   }
 
-  onSendNotificationError(video: Video, user: User, error: Error) {
+  async onSendNotificationError(video: Video, user: User, error: Error) {
     video.status = videoStatusEnum.ERROR;
     this.editVideoUseCase.edit({ uuid: video.uuid, ...video });
 
@@ -215,7 +215,7 @@ export class VideoService implements IService<Video>, OnModuleInit {
       `Enviar notificacao de erro para o usuario: ${video.userId}`,
     );
 
-    this.notificationHttpService
+    await this.notificationHttpService
       .createNotification({
         videoUuid: video.uuid,
         videoName: video.name,
@@ -228,23 +228,6 @@ export class VideoService implements IService<Video>, OnModuleInit {
       .catch((err) => {
         this.logger.error(
           `Erro ao enviar notificacao de erro: ${err.message}`,
-          error,
-        );
-      });
-
-    this.logger.error(
-      `Atualizando status do video no image-upload-service: ${error.message}`,
-      error,
-    );
-
-    this.imageUploadHttpService
-      .updateVideoZip({
-        videoUuid: video.uuid,
-        status: videoZipStatusEnum.DONE,
-      } as VideoZipDto)
-      .catch((err) => {
-        this.logger.error(
-          `Erro ao atualizar o status do vídeo zip: ${err.message}`,
           error,
         );
       });
