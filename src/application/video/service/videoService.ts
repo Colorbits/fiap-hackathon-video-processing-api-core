@@ -25,7 +25,7 @@ import * as path from 'path';
 import { VideoProcessingQueue } from 'src/shared/queue';
 
 const execPromise = promisify(exec);
-
+const defaultFramesPerSecond = process.env.FPS || 2; // valor padrão de 2 frames por segundo, pode ser ajustado conforme necessário
 @Injectable()
 export class VideoService implements IService<Video>, OnModuleInit {
   private videoProcessingQueue: VideoProcessingQueue<VideoDto>;
@@ -148,7 +148,7 @@ export class VideoService implements IService<Video>, OnModuleInit {
     }
 
     const durationInSeconds = await this.getVideoDuration(videoDto.path);
-    const framesPerSecond = 2; // usar o valor fornecido ou padrão de 1 frame por segundo;
+    const framesPerSecond: number = Number(defaultFramesPerSecond); // usar o valor fornecido ou padrão de 1 frame por segundo;
 
     const isAvailable = await this.checkVideoProcessorAvailability();
 
@@ -211,7 +211,7 @@ export class VideoService implements IService<Video>, OnModuleInit {
     video.status = videoStatusEnum.ERROR;
     this.editVideoUseCase.edit({ uuid: video.uuid, ...video });
 
-    this.logger.error(
+    this.logger.log(
       `Enviar notificacao de erro para o usuario: ${video.userId}`,
     );
 

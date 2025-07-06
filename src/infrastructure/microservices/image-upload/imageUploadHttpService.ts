@@ -16,10 +16,6 @@ export class ImageUploadHttpService implements IImageUploadHttpService {
 
   async createVideoZip(videoZipDto: VideoZipDto): Promise<VideoZipDto> {
     this.logger.log(
-      `createVideoZip ${imageUploadMicroserviceEndpoint}/video-zip ${JSON.stringify(videoZipDto)}`,
-    );
-
-    this.logger.log(
       'Enviando videoZipDto para o microserviço de upload de imagens',
     );
     const response = await axios.post<VideoZipDto>(
