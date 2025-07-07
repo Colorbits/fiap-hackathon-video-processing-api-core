@@ -1,0 +1,596 @@
+type: collection.insomnia.rest/5.0
+name: FIAP X
+meta:
+  id: wrk_a454a9d7607744d0bb7bb839ad39e0ed
+  created: 1749934528926
+  modified: 1749934528926
+  description: ""
+collection:
+  - name: Video Processing Api Core
+    meta:
+      id: fld_1be09fdc985e48ff816aaf069fc23064
+      created: 1749953078873
+      modified: 1751839259449
+      sortKey: -1749953137308
+      description: ""
+    children:
+      - name: Users
+        meta:
+          id: fld_d480e6ac00694b3f80193511b365fc2b
+          created: 1749934610094
+          modified: 1751839091861
+          sortKey: -1749953098809
+          description: ""
+        children:
+          - url: "{{ _.coreApiBaseUrl }}/users"
+            name: Register
+            meta:
+              id: req_51f37856e543458b8ed9c64490d647af
+              created: 1749934619221
+              modified: 1751825914243
+              isPrivate: false
+              description: ""
+              sortKey: -1749934660760
+            method: POST
+            body:
+              mimeType: application/json
+              text: |-
+                {
+                  "name": "Gabrielo2", 
+                  "email": "gabrielo2@gmail.com", 
+                  "password": "123456789"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: User-Agent
+                value: insomnia/11.2.0
+            scripts:
+              preRequest: |
+                const request = JSON.parse(insomnia.request.body);
+
+                console.log('email', request.email);
+                console.log('password', request.password);
+
+                insomnia.environment.set("email", request.email);
+                insomnia.environment.set("password", request.password);
+              afterResponse: ""
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{ _.coreApiBaseUrl }}/users/2"
+            name: Get User
+            meta:
+              id: req_1adf8d86b60e4680b5123e2d902f7a4a
+              created: 1749934740828
+              modified: 1751599879599
+              isPrivate: false
+              description: ""
+              sortKey: -1749934660735
+            method: GET
+            headers:
+              - name: User-Agent
+                value: insomnia/11.2.0
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - name: Videos
+        meta:
+          id: fld_3d26966b39cc4ca08080bf110202940a
+          created: 1749934614683
+          modified: 1751839259449
+          sortKey: -1749953098709
+          description: ""
+        children:
+          - url: "{{coreApiBaseUrl}}/videos/{{ _.userId }}"
+            name: Create Video
+            meta:
+              id: req_5a06285a7179446ca62e7b8ffb83873a
+              created: 1749934793923
+              modified: 1751683565933
+              isPrivate: false
+              description: ""
+              sortKey: -1749934793923
+            method: POST
+            body:
+              mimeType: multipart/form-data
+              params:
+                - id: pair_63e8d962e0004f7298785bbbc16c5c9d
+                  name: file
+                  value: ""
+                  description: ""
+                  disabled: false
+                  type: file
+                  multiline: true
+                  fileName: /Users/gabrielumbelino/Downloads/large.mp4
+            headers:
+              - name: Content-Type
+                value: multipart/form-data
+              - name: User-Agent
+                value: insomnia/11.2.0
+            authentication:
+              type: bearer
+              token: "{{ _.token }}"
+            scripts:
+              afterResponse: |
+                const response = JSON.parse(insomnia.response.body);
+                console.log('videoUuid', response.uuid);
+                insomnia.environment.set("videoUuid", response.uuid);
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{ _.coreApiBaseUrl}}/videos"
+            name: Get Videos
+            meta:
+              id: req_07228d6ffb444e5fb0189a0ad07ff398
+              created: 1749936153598
+              modified: 1751825894885
+              isPrivate: false
+              description: ""
+              sortKey: -1749934727341.5
+            method: GET
+            headers:
+              - name: User-Agent
+                value: insomnia/11.2.0
+            authentication:
+              type: bearer
+              token: "{{ _.token }}"
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - name: Auth
+        meta:
+          id: fld_87f29b2125474f8bb8f00a7dd6d35740
+          created: 1751244889204
+          modified: 1751839244967
+          sortKey: -1751244889204
+          description: ""
+        children:
+          - url: "{{ _.coreApiBaseUrl }}/auth/login"
+            name: Login
+            meta:
+              id: req_62ee6ebef45e43aa99b868d83f739eff
+              created: 1749934668683
+              modified: 1751807964102
+              isPrivate: false
+              description: ""
+              sortKey: -1751244910722
+            method: POST
+            body:
+              mimeType: application/json
+              text: |
+                {
+                  "email": "gabrielo2@gmail.com", 
+                  "password": "123456789"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: User-Agent
+                value: insomnia/11.2.0
+            scripts:
+              afterResponse: |
+                const response = JSON.parse(insomnia.response.body);
+
+                console.log('token', response.token);
+                console.log('refreshToken', response.refreshToken);
+                console.log('expiresAt', response.expiresAt);
+
+                insomnia.environment.set("token", response.token);
+                insomnia.environment.set("refreshToken", response.refreshToken);
+                insomnia.environment.set("expiresAt", response.expiresAt);
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+  - name: Image Upload Service
+    meta:
+      id: fld_b87bb984fdb24f17aab4e2c6df8bc2c9
+      created: 1749953137208
+      modified: 1751506221464
+      sortKey: -1749953137283
+      description: ""
+    children:
+      - name: images
+        meta:
+          id: fld_8f799c36d5734a4398006b4cb31eab29
+          created: 1749953161714
+          modified: 1751506221464
+          sortKey: -1749953165846
+          description: ""
+        children:
+          - url: "{{ _.imageUploadBaseUrl }}/images/c322e9c9-e0cd-44d0-8d5f-c10c89d3f8bd"
+            name: get Image
+            meta:
+              id: req_38f92cc9772a4781b680377d915d9f3d
+              created: 1749953214950
+              modified: 1751839305542
+              isPrivate: false
+              description: ""
+              sortKey: -1749953223746
+            method: GET
+            headers:
+              - name: User-Agent
+                value: insomnia/11.2.0
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{ _.imageUploadBaseUrl }}/images/{{ _.videoUuid }}"
+            name: upload Image
+            meta:
+              id: req_0ac654d9046d4928a233ba2db97a7701
+              created: 1749953434851
+              modified: 1751503972967
+              isPrivate: false
+              description: ""
+              sortKey: -1749953434851
+            method: POST
+            body:
+              mimeType: multipart/form-data
+              params:
+                - id: pair_7222d6ba7a1b430a892c97d79cbbe1fc
+                  name: file
+                  value: ""
+                  description: ""
+                  disabled: false
+                  type: file
+                  fileName: /Users/gabrielumbelino/Downloads/DSC_0058.JPG
+            headers:
+              - name: Content-Type
+                value: multipart/form-data
+              - name: User-Agent
+                value: insomnia/11.2.0
+            scripts:
+              afterResponse: |+
+                
+                const response = JSON.parse(insomnia.response.body);
+                console.log(response)
+                insomnia.environment.set("imageUuid", response.uuid);
+
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - name: VideoZip
+        meta:
+          id: fld_5a30d3f9bd5f4e98abac4d8346bd80cc
+          created: 1749953205143
+          modified: 1750699751256
+          sortKey: -1749953205143
+          description: ""
+        children:
+          - url: "{{ _.imageUploadBaseUrl }}/video-zip/{{ _.videoUuid }}"
+            name: get video zip
+            meta:
+              id: req_6dce53deb75f4db89289753a774a6585
+              created: 1750117521650
+              modified: 1751678292406
+              isPrivate: false
+              description: ""
+              sortKey: -1750117521650
+            method: GET
+            headers:
+              - name: User-Agent
+                value: insomnia/11.2.0
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{ _.imageUploadBaseUrl }}/video-zip"
+            name: create video zip
+            meta:
+              id: req_143dfc082e514acaa29368c272b0c944
+              created: 1750117571176
+              modified: 1751678856451
+              isPrivate: false
+              description: ""
+              sortKey: -1750117571176
+            method: POST
+            body:
+              mimeType: application/json
+              text: |-
+                {
+                	"videoUuid": "218139fa-bcb6-49fc-937f-0fd46ba82826"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: User-Agent
+                value: insomnia/11.2.0
+            scripts:
+              afterResponse: ""
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{ _.imageUploadBaseUrl }}/video-zip/{{ _.videoUuid }}"
+            name: update video zip
+            meta:
+              id: req_f6eb648660cd4ca6b38429b510cb24ec
+              created: 1750121350235
+              modified: 1750702265468
+              isPrivate: false
+              description: ""
+              sortKey: -1750117546413
+            method: PUT
+            body:
+              mimeType: application/json
+              text: |-
+                {
+                	"status": "CANCELED"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: User-Agent
+                value: insomnia/11.2.0
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{ _.imageUploadBaseUrl }}/video-zip/{{ _.videoUuid }}/images"
+            name: get video zip images
+            meta:
+              id: req_394898a746bc4e0d9370ae341036ef1d
+              created: 1750121498024
+              modified: 1751240911380
+              isPrivate: false
+              description: ""
+              sortKey: -1750035478250.5
+            method: GET
+            headers:
+              - name: User-Agent
+                value: insomnia/11.2.0
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{ _.imageUploadBaseUrl }}/video-zip/{{ _.videoUuid }}/zip"
+            name: get video zip images zipped file
+            meta:
+              id: req_c0f14e5478144fd88417f50354c6e29b
+              created: 1751805901225
+              modified: 1751805934809
+              isPrivate: false
+              description: ""
+              sortKey: -1749994456550.75
+            method: GET
+            headers:
+              - name: User-Agent
+                value: insomnia/11.2.0
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+  - name: Notification Service
+    meta:
+      id: fld_a8dfc2e3b79f441aac246cacb3491355
+      created: 1751334446184
+      modified: 1751336136498
+      sortKey: -1749953137258
+      description: ""
+    children:
+      - url: "{{ _.notificationBaseUrl }}/notifications"
+        name: Create Notification
+        meta:
+          id: req_0f01de1b56ec454b90e78682f2077cf5
+          created: 1751334461785
+          modified: 1751336021249
+          isPrivate: false
+          description: ""
+          sortKey: -1751334490532
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"videoUuid": "2e62679d-b2f6-492c-95a5-d21f71adca63",
+            	"videoName": "large-a722.mp4",
+            	"userId": "1",
+            	"userName": "Gabrielo",
+            	"email": "gabrielo@gmail.com",
+            	"error": "Error processing video",
+            	"date": "30-06-2025",
+            	"status": "PENDING"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.notificationBaseUrl }}/notifications"
+        name: Get Notifications
+        meta:
+          id: req_5d1d613868374fd492c6dc4e9b53f774
+          created: 1751336157326
+          modified: 1751681118937
+          isPrivate: false
+          description: ""
+          sortKey: -1751289700627
+        method: GET
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"videoUuid": "2e62679d-b2f6-492c-95a5-d21f71adca63",
+            	"videoName": "large-a722.mp4",
+            	"userId": "1",
+            	"userName": "Gabrielo",
+            	"email": "gabrielo@gmail.com",
+            	"error": "Error processing video",
+            	"date": "30-06-2025",
+            	"status": "PENDING"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.notificationBaseUrl }}/notifications/1"
+        name: Get Notifications by userId
+        meta:
+          id: req_f538c5e42836421889e9a20d32dcc069
+          created: 1751336560030
+          modified: 1751336571550
+          isPrivate: false
+          description: ""
+          sortKey: -1751267305674.5
+        method: GET
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"videoUuid": "2e62679d-b2f6-492c-95a5-d21f71adca63",
+            	"videoName": "large-a722.mp4",
+            	"userId": "1",
+            	"userName": "Gabrielo",
+            	"email": "gabrielo@gmail.com",
+            	"error": "Error processing video",
+            	"date": "30-06-2025",
+            	"status": "PENDING"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.notificationBaseUrl
+          }}/notifications/video/2e62679d-b2f6-492c-95a5-d21f71adca63"
+        name: Get Notifications by videoUuid
+        meta:
+          id: req_15ebe54ea1b0447c89867aedfcab4597
+          created: 1751336621812
+          modified: 1751336626675
+          isPrivate: false
+          description: ""
+          sortKey: -1751256108198.25
+        method: GET
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"videoUuid": "2e62679d-b2f6-492c-95a5-d21f71adca63",
+            	"videoName": "large-a722.mp4",
+            	"userId": "1",
+            	"userName": "Gabrielo",
+            	"email": "gabrielo@gmail.com",
+            	"error": "Error processing video",
+            	"date": "30-06-2025",
+            	"status": "PENDING"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_97dc29121a6dd68cad647a8bea79344d98fd5ff7
+    created: 1749934528930
+    modified: 1751839259447
+environments:
+  name: Base Environment
+  meta:
+    id: env_97dc29121a6dd68cad647a8bea79344d98fd5ff7
+    created: 1749934528928
+    modified: 1751839259448
+    isPrivate: false
+  data:
+    coreApiBaseUrl: k8s-fiap-svcvideo-067737d247-96aa2011a43e3bd0.elb.us-east-2.amazonaws.com:8080
+    imageUploadBaseUrl: k8s-fiap-svcimage-396363a137-54b1485534d2f6e3.elb.us-east-2.amazonaws.com:8081
+    notificationBaseUrl: k8s-fiap-svcnotif-9e19d8d8a9-bda8b55517d734e0.elb.us-east-2.amazonaws.com:8082
+    userId: "4"
+    viudeoUuid: 60ac0ec0-84d6-4e06-96ca-0c0c1ae7886c
+    videoUuid: 020ab2ff-8bd1-4545-8c35-1fc0d960b059
+    imageUuid: 6865dd2d73fd8586cfbb3ada
+    email: gabrielo2@gmail.com
+    password: "123456789"
+    token: 5516ffb377e5c99b5b987d9f68ec53e3ecd7d6aa086a85fea1fdad5a13553eb3
+    refreshToken: 135b1fd583a5c971e6d4b191ea54cb8c14a21b3768bc0eeb30710c30dc731af0
+    expiresAt: 2025-07-07T22:00:44.629Z
