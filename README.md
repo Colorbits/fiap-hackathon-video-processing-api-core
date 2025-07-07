@@ -37,6 +37,7 @@ Este serviço utiliza PostgreSQL para armazenar dados de usuários, metadados do
 ### Diagramas
 
 #### Diagrama de Entidade e Relacionamento
+![Diagrama de Entidade e Relacionamento](https://github.com/Colorbits/fiap-hackathon-video-processing-api-core/blob/main/docs/der.png?raw=true)
 
 O sistema de processamento de vídeos utiliza um modelo de dados simples e eficiente, composto por três entidades principais que se relacionam entre si. Abaixo, detalhamos cada uma dessas entidades e suas funções dentro do sistema.
 
@@ -55,17 +56,11 @@ A entidade AuthSession gerencia as sessões de autenticação dos usuários:
 
 ##### Arquitetura Clean
 
-![Arquitetura Clean](https://github.com/GabrielUmbelino/fiap-pos-tech-challenge/blob/main/docs/Fase%202/clean-architecture.jpg?raw=true)
+![Arquitetura Clean](https://github.com/Colorbits/fiap-hackathon-video-processing-api-core/blob/main/docs/clean-architecture.jpg?raw=true)
 
 
-##### Diagrama de Arquitetura
-![Diagrama de Arquitetura](https://github.com/Colorbits/fiap-pos-tech-challenge/blob/main/docs/Fase%204/microservice-diagram.png?raw=true)
-
-
-
-##### Kubernetes
-
-![Diagrama Kubernetes](https://github.com/GabrielUmbelino/fiap-pos-tech-challenge/blob/main/docs/Fase%202/kubernetes-diagram.jpg?raw=true)
+##### Diagrama de Arquitetura de Microserviços
+![Diagrama de Arquitetura](https://github.com/Colorbits/fiap-hackathon-video-processing-api-core/blob/main/docs/microservice-diagram.png?raw=true)
 
 
 ##### Fluxo de Processamento de Vídeo
@@ -163,7 +158,7 @@ npm run start
 
 Se você já completou um dos passos anteriores ([Instalação do projeto](#instala%C3%A7%C3%A3o-do-projeto) ou [Desenvolvimento](#desenvolvimento)), é possível importar uma coleção JSON do Insomnia com todos os endpoints já configurados para testar diretamente a API.
 
-A coleção do Insomnia está disponível [neste link](https://github.com/GabrielUmbelino/fiap-pos-tech-challenge/blob/main/docs/Fase%201/Postman/fiap-app.postman_collection.json). Você pode baixá-la e importar diretamente no seu Postman para realizar os testes necessários.
+A coleção do Insomnia está disponível [neste link](https://github.com/Colorbits/fiap-hackathon-video-processing-api-core/blob/main/docs/fiap-x-insomnia.yaml?raw=true). Você pode baixá-la e importar diretamente no seu Postman para realizar os testes necessários.
 
 
 
