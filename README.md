@@ -140,6 +140,48 @@ A solução de processamento de vídeo foi projetada usando uma arquitetura de m
 
 ## Instalação do projeto
 
+### Pré-requisitos
+
+#### Instalação do FFmpeg
+
+Este projeto utiliza o FFmpeg para processamento de vídeos. O FFmpeg deve estar instalado no seu sistema antes de executar a aplicação.
+
+##### macOS
+```bash
+# Usando Homebrew
+brew install ffmpeg
+
+# Verificar a instalação
+ffmpeg -version
+```
+
+##### Linux (Ubuntu/Debian)
+```bash
+# Atualizar repositórios
+sudo apt update
+
+# Instalar FFmpeg
+sudo apt install ffmpeg
+
+# Verificar a instalação
+ffmpeg -version
+```
+
+##### Windows
+1. Baixe o pacote do FFmpeg para Windows em [ffmpeg.org/download.html](https://ffmpeg.org/download.html)
+2. Extraia o arquivo ZIP para uma pasta (ex: `C:\ffmpeg`)
+3. Adicione a pasta `bin` ao PATH do sistema:
+   - Clique com o botão direito em "Este Computador" > "Propriedades" > "Configurações avançadas do sistema"
+   - Clique em "Variáveis de Ambiente"
+   - Selecione "Path" e clique em "Editar"
+   - Adicione o caminho para a pasta bin (ex: `C:\ffmpeg\bin`)
+   - Clique em "OK" para salvar
+
+Para verificar se a instalação foi bem-sucedida, abra um novo Prompt de Comando e execute:
+```
+ffmpeg -version
+```
+
 ### Kubernetes
 Este projeto pode ser executado em um ambiente kubernetes, dispensando qualquer instalação adicional.
 Se você não possui o Kubernetes instalado, siga as instruções para seu sistema operacional na [documentação oficial do Kubernetes](https://kubernetes.io/docs/tasks/tools/).
@@ -151,13 +193,22 @@ npm run start:kubernetes
 Acesse o projeto em: [http://localhost:8080/api](http://localhost:8080/api)
 
 ### Node.js
-Este projeto pode ser executado utilizando node.js em sua maquina.
+Este projeto pode ser executado utilizando Node.js em sua máquina.
 Se você não possui o Node.js instalado, siga as instruções para seu sistema operacional na [documentação oficial do Node.js](https://nodejs.org/en/download).
 
-#### 1 - Inicialize o projeto executando o seguinte comando no terminal
-```
+#### 1 - Certifique-se de que o FFmpeg está instalado corretamente (veja as instruções acima)
+
+#### 2 - Crie um arquivo .env na raiz do projeto com as configurações necessárias (veja exemplo acima)
+
+#### 3 - Inicialize o projeto executando o seguinte comando no terminal
+```bash
+# Instalar dependências
 npm install
 
+# Executar migrações do banco de dados
+npm run typeorm migration:run
+
+# Iniciar a aplicação
 npm run start
 ```
 
