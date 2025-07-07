@@ -158,8 +158,7 @@ npm run start
 
 Se você já completou um dos passos anteriores ([Instalação do projeto](#instala%C3%A7%C3%A3o-do-projeto) ou [Desenvolvimento](#desenvolvimento)), é possível importar uma coleção JSON do Insomnia com todos os endpoints já configurados para testar diretamente a API.
 
-A coleção do Insomnia está disponível [neste link](https://github.com/Colorbits/fiap-hackathon-video-processing-api-core/blob/main/docs/fiap-x-insomnia.yaml?raw=true). Você pode baixá-la e importar diretamente no seu Postman para realizar os testes necessários.
-
+A coleção do Insomnia está disponível [neste link](https://github.com/Colorbits/fiap-hackathon-video-processing-api-core/blob/main/docs/fiap-x-insomnia.yaml). Você pode baixá-la e importar diretamente no seu Postman para realizar os testes necessários.
 
 
 ## Swagger 
