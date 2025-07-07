@@ -140,7 +140,7 @@ Se você não possui o Kubernetes instalado, siga as instruções para seu siste
 ```
 npm run start:kubernetes
 ```
-Acesse o projeto em: [http://localhost:30000/api](http://localhost:30000/api)
+Acesse o projeto em: [http://localhost:8080/api](http://localhost:8080/api)
 
 ### Node.js
 Este projeto pode ser executado utilizando node.js em sua maquina.
