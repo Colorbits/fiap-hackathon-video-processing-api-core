@@ -33,7 +33,7 @@ export class UserService implements IService<User> {
     return this.createUserUseCase.create(userDto);
   }
 
-  find(id?: number, status?: string, term?: string): Promise<User[]> {
+  find(id?: number): Promise<User[]> {
     if (id) {
       return this.findUserUseCase.find(id);
     }
