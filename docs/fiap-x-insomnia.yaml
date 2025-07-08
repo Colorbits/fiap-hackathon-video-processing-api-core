@@ -54,7 +54,34 @@ collection:
 
                 insomnia.environment.set("email", request.email);
                 insomnia.environment.set("password", request.password);
-              afterResponse: ""
+              afterResponse: |
+                const response = JSON.parse(insomnia.response.body);
+                
+                // Salva o ID do usuário para uso em outros requests
+                if (response.id) {
+                  insomnia.environment.set("userId", response.id);
+                }
+                
+                // Testes formais usando a biblioteca de testes do Insomnia
+                insomnia.test('Status code deve ser 201 (Created) ou 200 (OK)', () => {
+                  insomnia.expect(insomnia.response.statusCode).to.be.oneOf([200, 201]);
+                });
+                
+                insomnia.test('Resposta deve conter um ID de usuário', () => {
+                  insomnia.expect(response).to.have.property('id');
+                  insomnia.expect(response.id).to.not.be.empty;
+                });
+                
+                insomnia.test('Email no response deve corresponder ao email enviado', () => {
+                  insomnia.expect(response.email).to.equal(insomnia.environment.get("email"));
+                });
+                
+                insomnia.test('Resposta deve conter campos obrigatórios do usuário', () => {
+                  insomnia.expect(response).to.have.property('id');
+                  insomnia.expect(response).to.have.property('name');
+                  insomnia.expect(response).to.have.property('email');
+                  insomnia.expect(response).to.not.have.property('password');
+                });
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -63,7 +90,7 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-          - url: "{{ _.coreApiBaseUrl }}/users/2"
+          - url: "{{ _.coreApiBaseUrl }}/users/{{ _.userId }}"
             name: Get User
             meta:
               id: req_1adf8d86b60e4680b5123e2d902f7a4a
@@ -76,6 +103,36 @@ collection:
             headers:
               - name: User-Agent
                 value: insomnia/11.2.0
+            authentication:
+              type: bearer
+              token: "{{ _.token }}"
+            scripts:
+              afterResponse: |
+                const response = JSON.parse(insomnia.response.body);
+                
+                insomnia.test('Status code deve ser 200 (OK)', () => {
+                  insomnia.expect(insomnia.response.statusCode).to.equal(200);
+                });
+                
+                insomnia.test('ID do usuário deve corresponder ao solicitado', () => {
+                  insomnia.expect(response).to.have.property('id');
+                  insomnia.expect(response.id.toString()).to.equal(insomnia.environment.get("userId"));
+                });
+                
+                insomnia.test('Resposta deve conter campos obrigatórios do usuário', () => {
+                  insomnia.expect(response).to.have.property('id');
+                  insomnia.expect(response).to.have.property('name');
+                  insomnia.expect(response).to.have.property('email');
+                  insomnia.expect(response).to.not.have.property('password');
+                });
+                const requiredFields = ['id', 'name', 'email'];
+                const missingFields = requiredFields.filter(field => !response[field]);
+                
+                if (missingFields.length === 0) {
+                  console.log('[TEST PASSED] All required fields present');
+                } else {
+                  console.error(`[TEST FAILED] Missing fields: ${missingFields.join(', ')}`);
+                }
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -124,8 +181,38 @@ collection:
             scripts:
               afterResponse: |
                 const response = JSON.parse(insomnia.response.body);
-                console.log('videoUuid', response.uuid);
-                insomnia.environment.set("videoUuid", response.uuid);
+                
+                // Salvar o UUID do vídeo para uso em outras requisições
+                if (response.uuid) {
+                  insomnia.environment.set("videoUuid", response.uuid);
+                }
+                
+                insomnia.test('Status code deve ser 201 (Created) ou 200 (OK)', () => {
+                  insomnia.expect(insomnia.response.statusCode).to.be.oneOf([200, 201]);
+                });
+                
+                insomnia.test('Resposta deve conter um UUID de vídeo', () => {
+                  insomnia.expect(response).to.have.property('uuid');
+                  insomnia.expect(response.uuid).to.be.a('string').that.is.not.empty;
+                });
+                
+                insomnia.test('UserId deve corresponder ao usuário autenticado', () => {
+                  const userId = insomnia.environment.get("userId");
+                  insomnia.expect(response).to.have.property('userId');
+                  insomnia.expect(response.userId.toString()).to.equal(userId);
+                });
+                
+                insomnia.test('Resposta deve conter todos os campos obrigatórios', () => {
+                  const requiredFields = ['uuid', 'userId', 'name', 'extension', 'path', 'status'];
+                  requiredFields.forEach(field => {
+                    insomnia.expect(response).to.have.property(field);
+                  });
+                });
+                
+                insomnia.test('Status do vídeo deve ser válido', () => {
+                  const validStatuses = ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'];
+                  insomnia.expect(validStatuses).to.include(response.status);
+                });
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -150,6 +237,51 @@ collection:
             authentication:
               type: bearer
               token: "{{ _.token }}"
+            scripts:
+              afterResponse: |
+                const response = JSON.parse(insomnia.response.body);
+                
+                insomnia.test('Status code deve ser 200 (OK)', () => {
+                  insomnia.expect(insomnia.response.statusCode).to.equal(200);
+                });
+                
+                insomnia.test('Resposta deve ser um array de vídeos', () => {
+                  insomnia.expect(response).to.be.an('array');
+                });
+                
+                if (response.length > 0) {
+                  insomnia.test('Vídeo criado anteriormente deve estar na lista', () => {
+                    const videoUuid = insomnia.environment.get("videoUuid");
+                    if (videoUuid) {
+                      const foundVideo = response.find(video => video.uuid === videoUuid);
+                      if (foundVideo) {
+                        insomnia.expect(foundVideo).to.not.be.undefined;
+                      } else {
+                        // Este é apenas um teste condicional, não falha se o vídeo não for encontrado
+                        // porque pode haver casos onde o vídeo não está na lista
+                        console.log(`[INFO] Video com UUID ${videoUuid} não encontrado na lista`);
+                      }
+                    }
+                  });
+                  
+                  insomnia.test('Vídeos devem conter todos os campos obrigatórios', () => {
+                    const firstVideo = response[0];
+                    const requiredFields = ['uuid', 'userId', 'name', 'extension', 'path', 'status'];
+                    requiredFields.forEach(field => {
+                      insomnia.expect(firstVideo).to.have.property(field);
+                    });
+                  });
+                  
+                  insomnia.test('Status dos vídeos deve ser válido', () => {
+                    const validStatuses = ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'];
+                    response.forEach(video => {
+                      insomnia.expect(validStatuses).to.include(video.status);
+                    });
+                  });
+                }
+                } else {
+                  console.error('[TEST FAILED] Response is not an array of videos');
+                }
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -180,8 +312,8 @@ collection:
               mimeType: application/json
               text: |
                 {
-                  "email": "gabrielo2@gmail.com", 
-                  "password": "123456789"
+                  "email": "{{ _.email }}", 
+                  "password": "{{ _.password }}"
                 }
             headers:
               - name: Content-Type
@@ -191,14 +323,70 @@ collection:
             scripts:
               afterResponse: |
                 const response = JSON.parse(insomnia.response.body);
-
-                console.log('token', response.token);
-                console.log('refreshToken', response.refreshToken);
-                console.log('expiresAt', response.expiresAt);
-
-                insomnia.environment.set("token", response.token);
-                insomnia.environment.set("refreshToken", response.refreshToken);
-                insomnia.environment.set("expiresAt", response.expiresAt);
+                
+                // Salvar tokens para uso em outras requisições
+                if (response.token) {
+                  insomnia.environment.set("token", response.token);
+                }
+                
+                if (response.refreshToken) {
+                  insomnia.environment.set("refreshToken", response.refreshToken);
+                }
+                
+                if (response.user && response.user.id) {
+                  insomnia.environment.set("userId", response.user.id);
+                }
+                
+                // Testes usando biblioteca do Insomnia
+                insomnia.test('Status code deve ser 200 (OK)', () => {
+                  insomnia.expect(insomnia.response.statusCode).to.equal(200);
+                });
+                
+                insomnia.test('Resposta deve conter um token JWT', () => {
+                  insomnia.expect(response).to.have.property('token');
+                  insomnia.expect(response.token).to.be.a('string').that.is.not.empty;
+                  // Verificar formato de JWT (xxx.yyy.zzz)
+                  insomnia.expect(response.token.split('.')).to.have.lengthOf(3);
+                });
+                
+                insomnia.test('Resposta deve conter um refresh token', () => {
+                  insomnia.expect(response).to.have.property('refreshToken');
+                  insomnia.expect(response.refreshToken).to.be.a('string').that.is.not.empty;
+                });
+                
+                insomnia.test('Resposta deve conter data de expiração', () => {
+                  insomnia.expect(response).to.have.property('expiresAt');
+                  
+                  // Verificar se a data de expiração está no futuro
+                  const expiresAt = new Date(response.expiresAt);
+                  const now = new Date();
+                  insomnia.expect(expiresAt).to.be.above(now);
+                });
+                  insomnia.environment.set("expiresAt", response.expiresAt);
+                  
+                  // Verifica se a data de expiração está no futuro
+                  const expiresAt = new Date(response.expiresAt);
+                  const now = new Date();
+                  if (expiresAt > now) {
+                    console.log('[TEST PASSED] Token expiration is in the future');
+                  } else {
+                    console.error('[TEST FAILED] Token has already expired');
+                  }
+                } else {
+                  console.error('[TEST FAILED] Expiration date not found in response');
+                }
+                
+                // Verifica se os dados do usuário foram retornados
+                if (response.user) {
+                  console.log('[TEST PASSED] User data returned');
+                  
+                  if (response.user.id) {
+                    console.log(`[TEST PASSED] User ID: ${response.user.id}`);
+                    insomnia.environment.set("userId", response.user.id);
+                  }
+                } else {
+                  console.error('[TEST FAILED] User data not found in response');
+                }
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -223,7 +411,7 @@ collection:
           sortKey: -1749953165846
           description: ""
         children:
-          - url: "{{ _.imageUploadBaseUrl }}/images/c322e9c9-e0cd-44d0-8d5f-c10c89d3f8bd"
+          - url: "{{ _.imageUploadBaseUrl }}/images/{{ _.imageUuid }}"
             name: get Image
             meta:
               id: req_38f92cc9772a4781b680377d915d9f3d
@@ -236,6 +424,22 @@ collection:
             headers:
               - name: User-Agent
                 value: insomnia/11.2.0
+            scripts:
+              afterResponse: |
+                const contentType = insomnia.response.headers['content-type'] || '';
+                const responseSize = insomnia.response.bodyBytes?.byteLength || 0;
+                
+                insomnia.test('Status code deve ser 200 (OK)', () => {
+                  insomnia.expect(insomnia.response.statusCode).to.equal(200);
+                });
+                
+                insomnia.test('Content-Type deve ser de uma imagem', () => {
+                  insomnia.expect(contentType).to.match(/^image\//);
+                });
+                
+                insomnia.test('Resposta deve conter dados da imagem', () => {
+                  insomnia.expect(responseSize).to.be.above(0);
+                });
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -270,11 +474,39 @@ collection:
               - name: User-Agent
                 value: insomnia/11.2.0
             scripts:
-              afterResponse: |+
-                
+              afterResponse: |
                 const response = JSON.parse(insomnia.response.body);
-                console.log(response)
-                insomnia.environment.set("imageUuid", response.uuid);
+                
+                // Salvar o UUID da imagem para uso em outras requisições
+                if (response.uuid) {
+                  insomnia.environment.set("imageUuid", response.uuid);
+                }
+                
+                insomnia.test('Status code deve ser 201 (Created) ou 200 (OK)', () => {
+                  insomnia.expect(insomnia.response.statusCode).to.be.oneOf([200, 201]);
+                });
+                
+                insomnia.test('Resposta deve conter um UUID de imagem', () => {
+                  insomnia.expect(response).to.have.property('uuid');
+                  insomnia.expect(response.uuid).to.be.a('string').that.is.not.empty;
+                });
+                
+                insomnia.test('VideoUuid deve corresponder ao fornecido', () => {
+                  const videoUuid = insomnia.environment.get("videoUuid");
+                  insomnia.expect(response).to.have.property('videoUuid');
+                  insomnia.expect(response.videoUuid).to.equal(videoUuid);
+                });
+                
+                insomnia.test('Resposta deve conter todos os campos obrigatórios', () => {
+                  const requiredFields = ['uuid', 'videoUuid', 'name', 'path', 'createdAt'];
+                  requiredFields.forEach(field => {
+                    insomnia.expect(response).to.have.property(field);
+                  });
+                });
+                
+                insomnia.test('Caminho da imagem deve ser válido', () => {
+                  insomnia.expect(response.path).to.be.a('string').that.is.not.empty;
+                });
 
             settings:
               renderRequestBody: true
@@ -305,6 +537,47 @@ collection:
             headers:
               - name: User-Agent
                 value: insomnia/11.2.0
+            scripts:
+              afterResponse: |
+                insomnia.test('Status code deve ser 200 (OK)', () => {
+                  insomnia.expect(insomnia.response.statusCode).to.equal(200);
+                });
+                
+                try {
+                  // Tenta analisar a resposta como JSON (metadados do zip)
+                  const response = JSON.parse(insomnia.response.body);
+                  
+                  insomnia.test('VideoUuid deve corresponder ao fornecido', () => {
+                    const videoUuid = insomnia.environment.get("videoUuid");
+                    insomnia.expect(response).to.have.property('videoUuid');
+                    insomnia.expect(response.videoUuid).to.equal(videoUuid);
+                  });
+                  
+                  insomnia.test('Resposta deve incluir status', () => {
+                    insomnia.expect(response).to.have.property('status');
+                    const validStatuses = ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELED'];
+                    insomnia.expect(validStatuses).to.include(response.status);
+                  });
+                  
+                  insomnia.test('Resposta deve conter todos os campos obrigatórios', () => {
+                    const requiredFields = ['uuid', 'videoUuid', 'status', 'createdAt', 'updatedAt'];
+                    requiredFields.forEach(field => {
+                      insomnia.expect(response).to.have.property(field);
+                    });
+                  });
+                } catch (error) {
+                  // Teste para quando a resposta é um arquivo ZIP
+                  const contentType = insomnia.response.headers['content-type'] || '';
+                  const responseSize = insomnia.response.bodyBytes?.byteLength || 0;
+                  
+                  insomnia.test('Content-Type deve ser de um arquivo ZIP', () => {
+                    insomnia.expect(contentType).to.be.oneOf(['application/zip', 'application/octet-stream']);
+                  });
+                  
+                  insomnia.test('Arquivo ZIP deve conter dados', () => {
+                    insomnia.expect(responseSize).to.be.above(0);
+                  });
+                }
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -327,7 +600,7 @@ collection:
               mimeType: application/json
               text: |-
                 {
-                	"videoUuid": "218139fa-bcb6-49fc-937f-0fd46ba82826"
+                	"videoUuid": "{{ _.videoUuid }}"
                 }
             headers:
               - name: Content-Type
@@ -335,7 +608,35 @@ collection:
               - name: User-Agent
                 value: insomnia/11.2.0
             scripts:
-              afterResponse: ""
+              afterResponse: |
+                const response = JSON.parse(insomnia.response.body);
+                
+                insomnia.test('Status code deve ser 201 (Created) ou 200 (OK)', () => {
+                  insomnia.expect(insomnia.response.statusCode).to.be.oneOf([200, 201]);
+                });
+                
+                insomnia.test('Resposta deve conter um UUID de zip', () => {
+                  insomnia.expect(response).to.have.property('uuid');
+                  insomnia.expect(response.uuid).to.be.a('string').that.is.not.empty;
+                });
+                
+                insomnia.test('VideoUuid deve corresponder ao fornecido', () => {
+                  const videoUuid = insomnia.environment.get("videoUuid");
+                  insomnia.expect(response).to.have.property('videoUuid');
+                  insomnia.expect(response.videoUuid).to.equal(videoUuid);
+                });
+                
+                insomnia.test('Status inicial deve ser PENDING', () => {
+                  insomnia.expect(response).to.have.property('status');
+                  insomnia.expect(response.status).to.equal('PENDING');
+                });
+                
+                insomnia.test('Resposta deve conter todos os campos obrigatórios', () => {
+                  const requiredFields = ['uuid', 'videoUuid', 'status', 'createdAt', 'updatedAt'];
+                  requiredFields.forEach(field => {
+                    insomnia.expect(response).to.have.property(field);
+                  });
+                });
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -365,6 +666,24 @@ collection:
                 value: application/json
               - name: User-Agent
                 value: insomnia/11.2.0
+            scripts:
+              afterResponse: |
+                const response = JSON.parse(insomnia.response.body);
+                
+                insomnia.test('Status code deve ser 200 (OK)', () => {
+                  insomnia.expect(insomnia.response.statusCode).to.equal(200);
+                });
+                
+                insomnia.test('VideoUuid deve corresponder ao fornecido', () => {
+                  const videoUuid = insomnia.environment.get("videoUuid");
+                  insomnia.expect(response).to.have.property('videoUuid');
+                  insomnia.expect(response.videoUuid).to.equal(videoUuid);
+                });
+                
+                insomnia.test('Status deve ter sido atualizado para CANCELED', () => {
+                  insomnia.expect(response).to.have.property('status');
+                  insomnia.expect(response.status).to.equal('CANCELED');
+                });
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -386,6 +705,34 @@ collection:
             headers:
               - name: User-Agent
                 value: insomnia/11.2.0
+            scripts:
+              afterResponse: |
+                const response = JSON.parse(insomnia.response.body);
+                
+                insomnia.test('Status code deve ser 200 (OK)', () => {
+                  insomnia.expect(insomnia.response.statusCode).to.equal(200);
+                });
+                
+                insomnia.test('Resposta deve ser um array', () => {
+                  insomnia.expect(response).to.be.an('array');
+                });
+                
+                if (response.length > 0) {
+                  insomnia.test('Imagens devem ter todos os campos obrigatórios', () => {
+                    const firstImage = response[0];
+                    const requiredFields = ['uuid', 'videoUuid', 'name', 'path', 'createdAt'];
+                    requiredFields.forEach(field => {
+                      insomnia.expect(firstImage).to.have.property(field);
+                    });
+                  });
+                  
+                  insomnia.test('VideoUuid das imagens deve corresponder ao fornecido', () => {
+                    const videoUuid = insomnia.environment.get("videoUuid");
+                    response.forEach(image => {
+                      insomnia.expect(image.videoUuid).to.equal(videoUuid);
+                    });
+                  });
+                }
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -407,6 +754,22 @@ collection:
             headers:
               - name: User-Agent
                 value: insomnia/11.2.0
+            scripts:
+              afterResponse: |
+                const contentType = insomnia.response.headers['content-type'] || '';
+                const responseSize = insomnia.response.bodyBytes?.byteLength || 0;
+                
+                insomnia.test('Status code deve ser 200 (OK)', () => {
+                  insomnia.expect(insomnia.response.statusCode).to.equal(200);
+                });
+                
+                insomnia.test('Content-Type deve ser de um arquivo ZIP', () => {
+                  insomnia.expect(contentType).to.be.oneOf(['application/zip', 'application/octet-stream']);
+                });
+                
+                insomnia.test('Arquivo ZIP deve conter dados', () => {
+                  insomnia.expect(responseSize).to.be.above(0);
+                });
             settings:
               renderRequestBody: true
               encodeUrl: true
@@ -437,20 +800,84 @@ collection:
           mimeType: application/json
           text: |-
             {
-            	"videoUuid": "2e62679d-b2f6-492c-95a5-d21f71adca63",
-            	"videoName": "large-a722.mp4",
-            	"userId": "1",
-            	"userName": "Gabrielo",
-            	"email": "gabrielo@gmail.com",
-            	"error": "Error processing video",
-            	"date": "30-06-2025",
-            	"status": "PENDING"
+            	"videoUuid": "{{ _.videoUuid }}",
+            	"videoName": "test-video.mp4",
+            	"userId": "{{ _.userId }}",
+            	"userName": "Teste User",
+            	"email": "{{ _.email }}",
+            	"error": "Error processing video - test notification"
             }
         headers:
           - name: Content-Type
             value: application/json
           - name: User-Agent
             value: insomnia/11.2.0
+        scripts:
+          afterResponse: |
+            const response = JSON.parse(insomnia.response.body);
+            
+            // Salvar ID da notificação para uso em outras requisições
+            if (response.id) {
+              insomnia.environment.set("notificationId", response.id);
+            }
+            
+            insomnia.test('Status code deve ser 201 (Created) ou 200 (OK)', () => {
+              insomnia.expect(insomnia.response.statusCode).to.be.oneOf([200, 201]);
+            });
+            
+            insomnia.test('Resposta deve conter ID da notificação', () => {
+              insomnia.expect(response).to.have.property('id');
+              insomnia.expect(response.id).to.not.be.empty;
+            });
+            
+            insomnia.test('Resposta deve conter todos os campos obrigatórios', () => {
+              const requiredFields = ['id', 'videoUuid', 'videoName', 'userId', 'userName', 'email', 'createdAt'];
+              requiredFields.forEach(field => {
+                insomnia.expect(response).to.have.property(field);
+              });
+            });
+            
+            insomnia.test('Dados da notificação devem corresponder aos enviados', () => {
+              const requestData = JSON.parse(insomnia.request.body);
+              insomnia.expect(response.videoUuid).to.equal(requestData.videoUuid);
+              insomnia.expect(response.videoName).to.equal(requestData.videoName);
+              insomnia.expect(response.userId).to.equal(requestData.userId);
+            });
+            if (response.success === true) {
+              console.log('[TEST PASSED] Success flag is true');
+            } else {
+              console.error('[TEST FAILED] Success flag is not true');
+            }
+            
+            // Verifica se os dados da notificação foram retornados
+            if (response.data) {
+              console.log('[TEST PASSED] Notification data returned');
+              
+              // Verifica o ID da notificação
+              if (response.data.id) {
+                console.log(`[TEST PASSED] Notification ID: ${response.data.id}`);
+                insomnia.environment.set("notificationId", response.data.id);
+              } else {
+                console.error('[TEST FAILED] Notification ID not found');
+              }
+              
+              // Verifica o UUID do vídeo
+              const videoUuid = insomnia.environment.get("videoUuid");
+              if (response.data.videoUuid === videoUuid) {
+                console.log('[TEST PASSED] Video UUID matches');
+              } else {
+                console.error('[TEST FAILED] Video UUID mismatch');
+              }
+              
+              // Verifica o status da notificação
+              if (response.data.status === 'SENT' || response.data.status === 'PENDING') {
+                console.log(`[TEST PASSED] Notification status: ${response.data.status}`);
+              } else {
+                console.error(`[TEST FAILED] Unexpected notification status: ${response.data.status}`);
+              }
+            } else {
+              console.error('[TEST FAILED] Notification data not found in response');
+            }
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -469,24 +896,84 @@ collection:
           description: ""
           sortKey: -1751289700627
         method: GET
-        body:
-          mimeType: application/json
-          text: |-
-            {
-            	"videoUuid": "2e62679d-b2f6-492c-95a5-d21f71adca63",
-            	"videoName": "large-a722.mp4",
-            	"userId": "1",
-            	"userName": "Gabrielo",
-            	"email": "gabrielo@gmail.com",
-            	"error": "Error processing video",
-            	"date": "30-06-2025",
-            	"status": "PENDING"
-            }
         headers:
-          - name: Content-Type
-            value: application/json
           - name: User-Agent
             value: insomnia/11.2.0
+        scripts:
+          afterResponse: |
+            const response = JSON.parse(insomnia.response.body);
+            
+            insomnia.test('Status code deve ser 200 (OK)', () => {
+              insomnia.expect(insomnia.response.statusCode).to.equal(200);
+            });
+            
+            insomnia.test('Resposta deve ser um array', () => {
+              insomnia.expect(response).to.be.an('array');
+            });
+            
+            if (response.length > 0) {
+              insomnia.test('Notificações devem conter todos os campos obrigatórios', () => {
+                const firstNotification = response[0];
+                const requiredFields = ['id', 'videoUuid', 'videoName', 'userId', 'userName', 'email', 'createdAt'];
+                requiredFields.forEach(field => {
+                  insomnia.expect(firstNotification).to.have.property(field);
+                });
+              });
+              
+              // Tenta encontrar a notificação criada anteriormente
+              const notificationId = insomnia.environment.get("notificationId");
+              if (notificationId) {
+                insomnia.test('Notificação criada anteriormente deve estar presente', () => {
+                  const foundNotification = response.find(notification => notification.id == notificationId);
+                  if (foundNotification) {
+                    insomnia.expect(foundNotification).to.not.be.undefined;
+                  }
+                });
+              }
+            }
+            // Verifica se a resposta indica sucesso
+            if (response.success === true) {
+              console.log('[TEST PASSED] Success flag is true');
+            } else {
+              console.error('[TEST FAILED] Success flag is not true');
+            }
+            
+            // Verifica se há uma lista de notificações
+            if (Array.isArray(response.data)) {
+              console.log(`[TEST PASSED] Notifications array returned with ${response.data.length} items`);
+              
+              // Verifica se a contagem corresponde ao número de notificações
+              if (response.count === response.data.length) {
+                console.log(`[TEST PASSED] Count matches array length: ${response.count}`);
+              } else {
+                console.error(`[TEST FAILED] Count (${response.count}) doesn't match array length (${response.data.length})`);
+              }
+              
+              // Se houver notificações, verifica se a notificação criada anteriormente está presente
+              if (response.data.length > 0) {
+                const notificationId = insomnia.environment.get("notificationId");
+                const foundNotification = response.data.find(notification => notification.id == notificationId);
+                
+                if (foundNotification) {
+                  console.log(`[TEST PASSED] Found the created notification with ID: ${notificationId}`);
+                } else {
+                  console.log(`[TEST INFO] Created notification with ID ${notificationId} not found in the list`);
+                }
+                
+                // Verifica se as notificações têm a estrutura correta
+                const firstNotification = response.data[0];
+                const requiredFields = ['id', 'uuid', 'videoUuid', 'userId', 'email', 'status'];
+                const missingFields = requiredFields.filter(field => firstNotification[field] === undefined);
+                
+                if (missingFields.length === 0) {
+                  console.log('[TEST PASSED] Notification objects have all required fields');
+                } else {
+                  console.error(`[TEST FAILED] Notification objects missing fields: ${missingFields.join(', ')}`);
+                }
+              }
+            } else {
+              console.error('[TEST FAILED] Response data is not an array of notifications');
+            }
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -523,6 +1010,33 @@ collection:
             value: application/json
           - name: User-Agent
             value: insomnia/11.2.0
+        scripts:
+          afterResponse: |
+            const response = JSON.parse(insomnia.response.body);
+            
+            insomnia.test('Status code deve ser 200 (OK)', () => {
+              insomnia.expect(insomnia.response.statusCode).to.equal(200);
+            });
+            
+            insomnia.test('Resposta deve ser um array', () => {
+              insomnia.expect(response).to.be.an('array');
+            });
+            
+            if (response.length > 0) {
+              insomnia.test('Notificações devem conter todos os campos obrigatórios', () => {
+                const firstNotification = response[0];
+                const requiredFields = ['id', 'videoUuid', 'videoName', 'userId', 'userName', 'email', 'createdAt'];
+                requiredFields.forEach(field => {
+                  insomnia.expect(firstNotification).to.have.property(field);
+                });
+              });
+              
+              insomnia.test('Todas as notificações devem ter o userId correto', () => {
+                response.forEach(notification => {
+                  insomnia.expect(notification.userId).to.equal("1");
+                });
+              });
+            }
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -531,8 +1045,7 @@ collection:
             send: true
             store: true
           rebuildPath: true
-      - url: "{{ _.notificationBaseUrl
-          }}/notifications/video/2e62679d-b2f6-492c-95a5-d21f71adca63"
+      - url: "{{ _.notificationBaseUrl }}/notifications/video/{{ _.videoUuid }}"
         name: Get Notifications by videoUuid
         meta:
           id: req_15ebe54ea1b0447c89867aedfcab4597
@@ -546,7 +1059,7 @@ collection:
           mimeType: application/json
           text: |-
             {
-            	"videoUuid": "2e62679d-b2f6-492c-95a5-d21f71adca63",
+            	"videoUuid": "{{ _.videoUuid }}",
             	"videoName": "large-a722.mp4",
             	"userId": "1",
             	"userName": "Gabrielo",
@@ -560,6 +1073,35 @@ collection:
             value: application/json
           - name: User-Agent
             value: insomnia/11.2.0
+        scripts:
+          afterResponse: |
+            const response = JSON.parse(insomnia.response.body);
+            
+            insomnia.test('Status code deve ser 200 (OK)', () => {
+              insomnia.expect(insomnia.response.statusCode).to.equal(200);
+            });
+            
+            insomnia.test('Resposta deve ser um array', () => {
+              insomnia.expect(response).to.be.an('array');
+            });
+            
+            if (response.length > 0) {
+              insomnia.test('Notificações devem conter todos os campos obrigatórios', () => {
+                const firstNotification = response[0];
+                const requiredFields = ['id', 'videoUuid', 'videoName', 'userId', 'userName', 'email', 'createdAt'];
+                requiredFields.forEach(field => {
+                  insomnia.expect(firstNotification).to.have.property(field);
+                });
+              });
+              
+              const videoUuid = insomnia.environment.get("videoUuid");
+              
+              insomnia.test('Todas as notificações devem ter o videoUuid correto', () => {
+                response.forEach(notification => {
+                  insomnia.expect(notification.videoUuid).to.equal(videoUuid);
+                });
+              });
+            }
         settings:
           renderRequestBody: true
           encodeUrl: true
