@@ -205,8 +205,6 @@ Se você não possui o Node.js instalado, siga as instruções para seu sistema 
 # Instalar dependências
 npm install
 
-# Executar migrações do banco de dados
-npm run typeorm migration:run
 
 # Iniciar a aplicação
 npm run start
