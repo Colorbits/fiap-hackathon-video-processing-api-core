@@ -13,8 +13,6 @@ O sistema permite que usuários façam upload de vídeos, que são então proces
 Este serviço utiliza PostgreSQL para armazenar dados de usuários, metadados dos vídeos e informações de processamento, além de integrar-se com serviços de armazenamento para os vídeos originais. A arquitetura é projetada para funcionar em ambientes Kubernetes, com escalabilidade horizontal para lidar com múltiplas requisições simultâneas de processamento de vídeo.
 
 
-
-
 ## Escopo do Sistema
 
 ### Gestão de Usuários
