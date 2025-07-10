@@ -180,16 +180,6 @@ Para verificar se a instalação foi bem-sucedida, abra um novo Prompt de Comand
 ffmpeg -version
 ```
 
-### Kubernetes
-Este projeto pode ser executado em um ambiente kubernetes, dispensando qualquer instalação adicional.
-Se você não possui o Kubernetes instalado, siga as instruções para seu sistema operacional na [documentação oficial do Kubernetes](https://kubernetes.io/docs/tasks/tools/).
-
-#### 1 - Inicialize o projeto executando o seguinte comando no terminal
-```
-npm run start:kubernetes
-```
-Acesse o projeto em: [http://localhost:8080/api](http://localhost:8080/api)
-
 ### Node.js
 Este projeto pode ser executado utilizando Node.js em sua máquina.
 Se você não possui o Node.js instalado, siga as instruções para seu sistema operacional na [documentação oficial do Node.js](https://nodejs.org/en/download).
